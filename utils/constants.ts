@@ -1,0 +1,1 @@
+export const GRADIENT = 'linear-gradient(248.86deg, #B6509E 10.51%, #2EBAC6 93.41%)';
