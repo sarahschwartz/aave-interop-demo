@@ -5,7 +5,7 @@ import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import SupplyForm from "./SupplyForm";
 import { type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 
-export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk}) {
+export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk }) {
   const [showAssetsWith0Balance, setShowAssetsWith0Balance] =
     useState<boolean>(false);
   const [showSupplyModal, setShowSupplyModal] = useState<boolean>(false);
@@ -42,19 +42,15 @@ export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk}) {
         <div className={tableHeaderStyle}></div>
 
         <div className="flex gap-1">
-          <Image
-            src="ethereum.svg"
-            alt="Ethereum logo"
-            width={24}
-            height={24}
-          />
-          <div className="mt-1">ETH</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="eth.svg" alt="ETH logo" className="w-6 h-6 mr-1" />
+          <div>ETH</div>
         </div>
         <div>{balance.data?.formatted.slice(0, 8)}</div>
         <div>0%</div>
-        <div>
+        <div className='ml-6'>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="check.svg" />
+          <img src="check.svg" alt="check" />
         </div>
         <div className="flex gap-2">
           <button
@@ -63,7 +59,7 @@ export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk}) {
           >
             Supply
           </button>
-          <button className="border border-gray-600 bg-gray-700 py-2 px-4 rounded-md text-sm">
+          <button className="cursor-pointer border border-gray-600 bg-gray-700 py-2 px-4 rounded-md text-sm">
             ...
           </button>
         </div>

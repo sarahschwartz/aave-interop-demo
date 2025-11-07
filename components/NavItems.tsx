@@ -76,7 +76,7 @@ const navigation: Navigation[] = [
                     width: '100%',
                     transform: 'scaleX(0)',
                     height: '2px',
-                    bottom: '-1px',
+                    bottom: '-4px',
                     left: '0',
                     background: GRADIENT,
                     transformOrigin: 'bottom right',

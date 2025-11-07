@@ -9,6 +9,7 @@ import { createViemClient, createViemSdk, ViemSdk } from "@dutterbutter/zksync-s
 import { EIP1193Provider, custom, createWalletClient, createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { UseAccountReturnType, Config } from "wagmi";
+import { SuppliedAssets } from "./SuppliedAssets";
 
 export default function SupplyAndBorrow({ account }: { account: UseAccountReturnType<Config>}) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
@@ -112,9 +113,8 @@ export default function SupplyAndBorrow({ account }: { account: UseAccountReturn
             style={{ backgroundColor: "var(--container)" }}
           >
             <h3 className="font-bold text-lg">Your supplies</h3>
-            <div className="text-gray-400 text-sm mt-10">
-              Nothing supplied yet
-            </div>
+
+            <SuppliedAssets sdk={sdk} />
           </div>
 
           <div
