@@ -13,7 +13,7 @@ const CustomToggleButton = styled(ToggleButton)<ToggleButtonProps>(() => ({
   },
 
   '&.Mui-selected, &.Mui-disabled': {
-    zIndex: 100,
+    zIndex: 10,
     height: '100%',
     display: 'flex',
     justifyContent: 'center',
