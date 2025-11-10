@@ -24,7 +24,7 @@ export default function Stats({ ethBalance, ethPrice, isLoading }: { ethBalance:
                {isLoading ? (
           <Skeleton sx={SKELETON_STYLE} width={60} height={35} />
         ) : (
-          <div className="flex font-bold gap-1 text-lg">
+          <div className="flex font-bold gap-1 text-xl">
             <span>$</span>
             <span className="text-white">{usdValue}</span>
           </div>
@@ -34,11 +34,17 @@ export default function Stats({ ethBalance, ethPrice, isLoading }: { ethBalance:
 
         <div>
           <div>Net APY</div>
-          <div className="font-bold text-lg">
+          <div className="font-bold text-xl">
              {isLoading ? (
           <Skeleton sx={SKELETON_STYLE} width={60} height={35} />
         ) : (
-          <span>—</span>
+          <div>
+            {usdValue > 0 ? (
+              <span><span className='text-white'>0</span> %</span>
+            ) : (
+              <span>-</span>
+            )}
+            </div>
         )}
           </div>
         </div>
@@ -48,7 +54,7 @@ export default function Stats({ ethBalance, ethPrice, isLoading }: { ethBalance:
           {isLoading ? (
           <Skeleton sx={SKELETON_STYLE} width={60} height={35} />
         ) : (
-           <div className="flex font-bold gap-1 text-lg">
+           <div className="flex font-bold gap-1 text-xl">
             <span>$</span>
             <span className="text-white">0</span>
             <button

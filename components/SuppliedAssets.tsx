@@ -1,7 +1,8 @@
-import { Skeleton, Tooltip } from "@mui/material";
+import { Skeleton } from "@mui/material";
 import { StyledSwitch } from "./ui/StyledSwitch";
 import type { DepositRow, HashInfo } from "@/utils/types";
 import { SKELETON_STYLE } from "@/utils/constants";
+import Tooltip from "./ui/Tooltip";
 
 interface Props { 
   isLoading: boolean;
@@ -24,14 +25,7 @@ export function SuppliedAssets({ isLoading, latestHashes, finalizingDeposits, et
           <div className={tableHeaderStyle}>Assets</div>
           <div className={tableHeaderStyle}>
             <span>Balance</span>
-            <Tooltip title={isLoading ? 'loading...' : finalizingDeposits && finalizingDeposits.length > 0 ? `${finalizingDeposits.length} tx still finalizing on L1` : 'all txns finalized'} placement="top">
-            <span
-                aria-hidden
-                className="cursor-default ml-2 inline-flex h-3 w-3 items-center justify-center rounded-full border border-slate-500 text-[10px] leading-none text-slate-400"
-              >
-                i
-              </span>
-              </Tooltip>
+            <Tooltip styles='ml-2' text={isLoading ? 'loading...' : finalizingDeposits && finalizingDeposits.length > 0 ? `${finalizingDeposits.length} tx still finalizing on L1` : 'all txns finalized'} />
             </div>
           <div className={tableHeaderStyle}>APY</div>
           <div className={tableHeaderStyle}>Collateral</div>

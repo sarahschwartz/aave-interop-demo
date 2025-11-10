@@ -1,9 +1,11 @@
-import { initWithdraw } from "@/utils/withdraw";
+import { estimateGas, initWithdraw } from "@/utils/withdraw";
 import { ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
-import { UseAccountReturnType, Config } from "wagmi";
+import { UseAccountReturnType, type Config } from "wagmi";
 import SupplySuccessForm from "./SupplySuccessForm";
 import Spinner from "./ui/Spinner";
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import Tooltip from "./ui/Tooltip";
 
 type Props = {
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
@@ -31,6 +33,7 @@ export default function EthSupplyForm({
   const [isError, setIsError] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [hash, setHash] = useState<string>();
+  // const [gasEstimate, setGasEstimate] = useState<bigint>();
 
   const amountNumber = useMemo(
     () => Number(amount.replace(/,/g, "")) || 0,
@@ -41,6 +44,8 @@ export default function EthSupplyForm({
     () => Math.round(amountNumber * ethPrice * 100) / 100,
     [amountNumber, ethPrice]
   );
+
+  const amountIsGreaterThanZero = amount && parseFloat(amount) > 0;
 
   function handleMax() {
     setAmount(balance.toString());
@@ -73,14 +78,18 @@ export default function EthSupplyForm({
       setIsPending(false);
     }
   };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleChange(e: any) {
     const value =
       e.target.value > balance ? balance.toString() : e.target.value;
     setAmount(value);
+  //   if(!sdk) return;
+  //   const quote = await estimateGas(account, value, sdk);
+  //   if(quote?.suggestedL2GasLimit){
+  //     setGasEstimate(quote.suggestedL2GasLimit);
+  //   }
   }
-
-
 
   return (
     <>
@@ -100,7 +109,7 @@ export default function EthSupplyForm({
       ) : (
         <div>
           <div className="flex mb-4 align-bottom justify-between">
-            <div className="text-xl font-bold mt-3">Supply ETH</div>
+            <div className="text-[22px] font-bold mt-3">Supply ETH</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/x.svg"
@@ -113,16 +122,11 @@ export default function EthSupplyForm({
           <form onSubmit={handleSubmit} className="rounded-2xl text-slate-100">
             <div className="mb-2 flex items-center gap-2 text-slate-400">
               <span className="text-sm font-medium">Amount</span>
-              <span
-                aria-hidden
-                className="inline-flex h-3 w-3 items-center justify-center rounded-full border border-slate-500 text-[10px] leading-none text-slate-400"
-                title="Enter the amount of ETH to supply."
-              >
-                i
-              </span>
+              <Tooltip text='This is the total amount that you are able to supply to in this reserve. You are able to
+        supply your wallet balance up until the supply cap is reached.' />
             </div>
 
-            <div className="rounded-xl border border-slate-700">
+            <div className="rounded-sm border border-slate-700">
               <div className="flex items-center gap-3 px-4 py-2">
                 <input
                   inputMode="decimal"
@@ -148,20 +152,20 @@ export default function EthSupplyForm({
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/ethereum.svg"
+                    src="/eth.svg"
                     alt="Ethereum"
-                    className="h-5 w-5"
+                    className="h-6 w-6"
                     draggable={false}
                   />
-                  <span className="text-sm font-semibold tracking-wide">
+                  <span className="text-md font-semibold mr-6">
                     ETH
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-slate-800 px-4 pb-1 text-sm">
+              <div className="flex items-center justify-between px-4 pb-1 text-sm">
                 <span className="text-slate-400">
-                  $
+                  ${" "}
                   {usdValue.toLocaleString(undefined, {
                     maximumFractionDigits: 2,
                   })}
@@ -174,7 +178,7 @@ export default function EthSupplyForm({
                   <button
                     type="button"
                     onClick={handleMax}
-                    className="rounded-mdpx-2 py-0.5 text-xs font-semibold tracking-wide text-slate-200 hover:bg-slate-700"
+                    className="py-0.5 text-xs font-semibold tracking-wide text-slate-200 hover:bg-slate-700"
                   >
                     MAX
                   </button>
@@ -187,7 +191,7 @@ export default function EthSupplyForm({
                 Transaction overview
               </div>
 
-              <div className="rounded-xl border border-slate-700 text-sm">
+              <div className="rounded-sm border border-slate-700 text-sm">
                 <div className="flex items-center justify-between px-4 py-1">
                   <span className="text-slate-200">Supply APY</span>
                   <span className="text-slate-200">
@@ -195,27 +199,33 @@ export default function EthSupplyForm({
                   </span>
                 </div>
 
-                <div className="h-px w-full bg-slate-800" />
-
                 <div className=" flex items-center justify-between px-4 py-1">
                   <span className="text-slate-200">Collateralization</span>
-                  <span className="font-medium text-[#2e7d32]">Enabled</span>
+                  <span className="font-medium text-[#66bb6a]">Enabled</span>
                 </div>
               </div>
+            </div>
+
+            <div className="text-white pt-6 flex items-center gap-1">
+              <LocalGasStationIcon color="inherit" sx={{ fontSize: '16px' }} />
+              <div className='text-gray-400 text-[12px]'>{amountIsGreaterThanZero ? '< $ 0.01' : '-'}</div>
+              {amountIsGreaterThanZero && <Tooltip text='This gas calculation is only an estimation. Your wallet will set the price of the
+        transaction. You can modify the gas settings directly from your wallet provider.'/>}
+              
             </div>
 
             <button
               disabled={!amount || isPending}
               type="submit"
-              className={`mt-4 ${
-                !isPending && amount && parseFloat(amount) > 0
+              className={`${
+                !isPending && amountIsGreaterThanZero
                   ? "bg-white text-black cursor-pointer hover:bg-gray-300"
                   : "bg-gray-600 text-slate-500"
-              } py-2 w-full rounded-md flex gap-4 justify-center`}
+              } mt-12 py-2 w-full rounded-md flex gap-4 justify-center`}
             >
               {isPending && <Spinner/>}
               {isPending ? 'Supplying ETH' : 
-              amount && parseFloat(amount) > 0
+              amountIsGreaterThanZero
                 ? "Supply ETH"
                 : "Enter an amount"}
             </button>

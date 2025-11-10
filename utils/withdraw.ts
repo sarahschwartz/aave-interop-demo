@@ -9,29 +9,8 @@ export async function initWithdraw(
   amount: string,
   sdk: ViemSdk
 ) {
-  if (!account || !account.connector || !account.connector.getProvider) {
-    console.log("no account found, try reconnecting");
-    return;
-  }
   try {
-    const provider = (await account.connector.getProvider()) as
-      | EIP1193Provider
-      | undefined;
-    if (!provider) {
-      console.log("no provider, try connecting wallet again");
-      return;
-    }
-    // confirm correct chain is connected, switch if not
-    const currentHex = await provider.request({ method: "eth_chainId" });
-    if (typeof currentHex === "string") {
-      const parsed = Number.parseInt(currentHex, 16);
-      if (Number.isFinite(parsed) && parsed !== zksyncOSTestnet.id) {
-        await provider.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${zksyncOSTestnet.id.toString(16)}` }],
-        });
-      }
-    }
+    await checkChainId(account);
     const params = {
       token: ETH_ADDRESS,
       amount: parseEther(amount),
@@ -39,7 +18,6 @@ export async function initWithdraw(
     } as const;
 
     console.log("creating withdraw txn...");
-
     const created = await sdk.withdrawals.create(params);
 
     const hash = created.l2TxHash;
@@ -48,6 +26,7 @@ export async function initWithdraw(
       return;
     }
     console.log("withdraw created:", hash);
+
     const response = await fetch("/api/start-withdraw", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -58,10 +37,9 @@ export async function initWithdraw(
 
     const json = await response.json();
     if (!json.ok) {
-      alert("something went wrong");
+      throw new Error("error sending txn for finalization");
     }
     storeRecentHash(hash);
-    console.log("withdraw intitiated");
     return hash;
   } catch (e) {
     alert("something went wrong");
@@ -70,8 +48,53 @@ export async function initWithdraw(
   }
 }
 
+export async function estimateGas(
+  account: UseAccountReturnType<Config>,
+  amount: string,
+  sdk: ViemSdk
+) {
+  try {
+    await checkChainId(account);
+
+    const params = {
+      token: ETH_ADDRESS,
+      amount: parseEther(amount),
+      to: account.address,
+    } as const;
+    const quote = await sdk.withdrawals.quote(params);
+    console.log("WITHDRAW QUOTE →", quote);
+    return quote;
+  } catch (e) {
+    alert("something went wrong");
+    console.log("ERROR:", e);
+    return;
+  }
+}
+
+async function checkChainId(account: UseAccountReturnType<Config>) {
+  if (!account || !account.connector || !account.connector.getProvider) {
+    throw new Error("no account found, try reconnecting");
+  }
+  const provider = (await account.connector.getProvider()) as
+    | EIP1193Provider
+    | undefined;
+  if (!provider) {
+    throw new Error("no provider, try reconnecting");
+  }
+  const currentHex = await provider.request({ method: "eth_chainId" });
+  if (typeof currentHex === "string") {
+    const parsed = Number.parseInt(currentHex, 16);
+    if (Number.isFinite(parsed) && parsed !== zksyncOSTestnet.id) {
+      await provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: `0x${zksyncOSTestnet.id.toString(16)}` }],
+      });
+    }
+  }
+}
+
 function storeRecentHash(hash: string): void {
-  const key = 'latestAaveZKsyncDeposits';
+  const key = "latestAaveZKsyncDeposits";
 
   const stored = localStorage.getItem(key);
   let hashes: string[] = [];
