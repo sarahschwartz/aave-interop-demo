@@ -8,9 +8,10 @@ interface Props {
   sdk?: ViemSdk; 
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
+  ethPrice: number;
 };
 
-export default function AssetsToSupply({ sdk, setUpdateCount, updateCount }: Props) {
+export default function AssetsToSupply({ sdk, setUpdateCount, updateCount, ethPrice }: Props) {
   const [showAssetsWith0Balance, setShowAssetsWith0Balance] =
     useState<boolean>(false);
   const [showSupplyModal, setShowSupplyModal] = useState<boolean>(false);
@@ -98,6 +99,7 @@ export default function AssetsToSupply({ sdk, setUpdateCount, updateCount }: Pro
                   account={account}
                   sdk={sdk}
                   setUpdateCount={setUpdateCount}
+                  ethPrice={ethPrice}
                 />
               </div>
             </DialogPanel>

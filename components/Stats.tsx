@@ -3,10 +3,10 @@ import { GRADIENT, SKELETON_STYLE } from "@/utils/constants";
 import { useMemo } from "react";
 import { Skeleton } from "@mui/material";
 
-export default function Stats({ ethBalance, priceUsd, isLoading }: { ethBalance: string, priceUsd: number, isLoading: boolean}) {
+export default function Stats({ ethBalance, ethPrice, isLoading }: { ethBalance: string, ethPrice: number, isLoading: boolean}) {
    const usdValue = useMemo(
-      () => parseFloat(ethBalance) * priceUsd,
-      [ethBalance, priceUsd]
+      () => Math.round(parseFloat(ethBalance) * ethPrice * 100) / 100,
+      [ethBalance, ethPrice]
     );
 
   return (

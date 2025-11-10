@@ -15,9 +15,10 @@ interface Props{
   ethBalance: string;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
+  ethPrice: number;
 }
 
-export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizingDeposits, ethBalance, setUpdateCount, updateCount }: Props) {
+export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizingDeposits, ethBalance, setUpdateCount, updateCount, ethPrice }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const { breakpoints } = useTheme();
   const isDesktop = useMediaQuery(breakpoints.up("lg"));
@@ -63,7 +64,7 @@ export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizi
             style={{ backgroundColor: "var(--container)" }}
           >
             <h3 className="font-bold text-lg">Assets to supply</h3>
-           <AssetsToSupply sdk={sdk} setUpdateCount={setUpdateCount} updateCount={updateCount} />
+           <AssetsToSupply sdk={sdk} setUpdateCount={setUpdateCount} updateCount={updateCount} ethPrice={ethPrice} />
           </div>
         </div>
 

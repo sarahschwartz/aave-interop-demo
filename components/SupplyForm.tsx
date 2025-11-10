@@ -10,8 +10,8 @@ type Props = {
   setUpdateCount: Dispatch<SetStateAction<number>>;
   sdk?: ViemSdk;
   account: UseAccountReturnType<Config>;
-  balance?: number | bigint;
-  priceUsd?: number;
+  balance: number | bigint;
+  ethPrice: number;
 };
 
   const Error = () => (
@@ -23,10 +23,10 @@ export default function EthSupplyForm({
   setUpdateCount,
   sdk,
   account,
-  balance = 0.3673807,
-  priceUsd = 3400.0,
+  balance,
+  ethPrice,
 }: Props) {
-  const [amount, setAmount] = useState<string>("0.00");
+  const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -37,9 +37,9 @@ export default function EthSupplyForm({
     [amount]
   );
 
-  const usdValue = useMemo(
-    () => amountNumber * priceUsd,
-    [amountNumber, priceUsd]
+    const usdValue = useMemo(
+    () => Math.round(amountNumber * ethPrice * 100) / 100,
+    [amountNumber, ethPrice]
   );
 
   function handleMax() {
@@ -142,7 +142,7 @@ export default function EthSupplyForm({
                         alt="cancel"
                         className="cursor-pointer h-4 w-4"
                         draggable={false}
-                        onClick={() => setShowSupplyModal(false)}
+                        onClick={() => setAmount('')}
                       />
                     </>
                   )}

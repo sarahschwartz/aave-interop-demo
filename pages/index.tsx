@@ -36,14 +36,27 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
-  // TODO: fetch actual price
-  // const [ethPrice, setEthPrice] = useState<number>();
-  const ethPrice = 3400.00;
+  const [ethPrice, setEthPrice] = useState<number>();
   const [finalizingDeposits, setFinalizingDeposits] = useState<DepositRow[]>();
   const [sdk, setSdk] = useState<ViemSdk>();
 
   useEffect(() => {
+    async function getPrice() {
+      try {
+        const response = await fetch("/api/get-price", {
+          method: "GET",
+          headers: {},
+        });
+        const prices = await response.json();
+
+        setEthPrice(prices.ethPrice);
+      } catch (e) {
+        console.log("Error fetching price", e);
+      }
+    }
+
     setHasMounted(true);
+    getPrice();
   }, []);
 
   const DEFAULT_L1_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
@@ -147,7 +160,7 @@ export default function Home() {
 
             const valueWei =
               txR.status === "fulfilled" && txR.value
-                ? txR.value.value ?? BigInt(0)
+                ? txR.value.value || BigInt(0)
                 : BigInt(0);
             const phase =
               stR.status === "fulfilled"
@@ -195,15 +208,20 @@ export default function Home() {
           <>
             {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
-                <Stats isLoading={isLoading} ethBalance={ethBalance ?? '0.00'} priceUsd={ethPrice} />
+                <Stats
+                  isLoading={isLoading}
+                  ethBalance={ethBalance || "0.00"}
+                  ethPrice={ethPrice || 3500}
+                />
                 <SupplyAndBorrow
                   sdk={sdk}
                   isLoading={isLoading}
                   latestHashes={latestHashes}
-                  finalizingDeposits={finalizingDeposits ?? []}
-                  ethBalance={ethBalance ?? "0.00"}
+                  finalizingDeposits={finalizingDeposits || []}
+                  ethBalance={ethBalance || "0.00"}
                   setUpdateCount={setUpdateCount}
                   updateCount={updateCount}
+                  ethPrice={ethPrice || 3500}
                 />
               </div>
             ) : (
