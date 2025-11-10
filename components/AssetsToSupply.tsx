@@ -1,16 +1,25 @@
-import { useState } from "react";
-import Image from "next/image";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useAccount, useBalance } from "wagmi";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import SupplyForm from "./SupplyForm";
 import { type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 
-export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk }) {
+interface Props { 
+  sdk?: ViemSdk; 
+  setUpdateCount: Dispatch<SetStateAction<number>>;
+  updateCount: number;
+};
+
+export default function AssetsToSupply({ sdk, setUpdateCount, updateCount }: Props) {
   const [showAssetsWith0Balance, setShowAssetsWith0Balance] =
     useState<boolean>(false);
   const [showSupplyModal, setShowSupplyModal] = useState<boolean>(false);
   const account = useAccount();
-  const balance = useBalance({ address: account?.address });
+  const { data, refetch } = useBalance({ address: account?.address });
+
+  useEffect(() => {
+    refetch();
+  }, [updateCount])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (e: any) => {
@@ -46,13 +55,13 @@ export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk }) {
           <img src="eth.svg" alt="ETH logo" className="w-6 h-6 mr-1" />
           <div>ETH</div>
         </div>
-        <div>{balance.data?.formatted.slice(0, 8)}</div>
+        <div>{data?.formatted.slice(0, 8)}</div>
         <div>0%</div>
         <div className='ml-6'>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="check.svg" alt="check" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-end">
           <button
             onClick={() => setShowSupplyModal(true)}
             className="cursor-pointer bg-white text-black p-2 rounded-md text-sm"
@@ -84,10 +93,11 @@ export default function AssetsToSupply({ sdk }: { sdk?: ViemSdk }) {
             >
               <div className="p-4">
                 <SupplyForm
-                  balance={parseFloat(balance.data?.formatted || "0.00")}
+                  balance={parseFloat(data?.formatted || "0.00")}
                   setShowSupplyModal={setShowSupplyModal}
                   account={account}
                   sdk={sdk}
+                  setUpdateCount={setUpdateCount}
                 />
               </div>
             </DialogPanel>

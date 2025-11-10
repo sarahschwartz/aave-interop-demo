@@ -7,6 +7,7 @@ import Spinner from "./ui/Spinner";
 
 type Props = {
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
+  setUpdateCount: Dispatch<SetStateAction<number>>;
   sdk?: ViemSdk;
   account: UseAccountReturnType<Config>;
   balance?: number | bigint;
@@ -19,6 +20,7 @@ type Props = {
 
 export default function EthSupplyForm({
   setShowSupplyModal,
+  setUpdateCount,
   sdk,
   account,
   balance = 0.3673807,
@@ -61,6 +63,7 @@ export default function EthSupplyForm({
       } else {
         setHash(hash);
         setIsSuccess(true);
+        setUpdateCount((prev) => prev + 1);
       }
       setIsPending(false);
     } catch (e) {
@@ -196,7 +199,7 @@ export default function EthSupplyForm({
 
                 <div className=" flex items-center justify-between px-4 py-1">
                   <span className="text-slate-200">Collateralization</span>
-                  <span className="font-medium text-lime-600">Enabled</span>
+                  <span className="font-medium text-[#2e7d32]">Enabled</span>
                 </div>
               </div>
             </div>

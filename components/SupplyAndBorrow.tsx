@@ -1,85 +1,26 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import StyledToggleGroup from "@/components/ui/StyledToggleGroup";
 import StyledToggleButton from "@/components/ui/StyledToggleButton";
 import { Typography, useMediaQuery, useTheme } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import AssetsToSupply from "./AssetsToSupply";
-import { zksyncOSTestnet } from "@/utils/wagmi";
-import { createViemClient, createViemSdk, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
-import { EIP1193Provider, custom, createWalletClient, createPublicClient, http } from "viem";
-import { sepolia } from "viem/chains";
-import { UseAccountReturnType, Config } from "wagmi";
+import { type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import { SuppliedAssets } from "./SuppliedAssets";
+import type { DepositRow, HashInfo } from "@/utils/types";
 
-export default function SupplyAndBorrow({ account }: { account: UseAccountReturnType<Config>}) {
+interface Props{
+  sdk?: ViemSdk;
+  isLoading: boolean;
+  latestHashes: HashInfo[];
+  finalizingDeposits: DepositRow[];
+  ethBalance: string;
+  setUpdateCount: Dispatch<SetStateAction<number>>;
+  updateCount: number;
+}
+
+export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizingDeposits, ethBalance, setUpdateCount, updateCount }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
-   const [sdk, setSdk] = useState<ViemSdk>();
   const { breakpoints } = useTheme();
   const isDesktop = useMediaQuery(breakpoints.up("lg"));
-
-    const DEFAULT_L1_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
-  const DEFAULT_L2_RPC = "https://zksync-os-testnet-alpha.zksync.dev/";
-
-  const l1Client = createPublicClient({
-    chain: sepolia,
-    transport: http(DEFAULT_L1_RPC),
-  });
-
-    const instantiateSdk = useCallback(
-      async (addr: `0x${string}`, prov: EIP1193Provider, rpc: string) => {
-        const transport = custom(prov);
-  
-        const l1Wallet = createWalletClient({
-          account: addr,
-          chain: sepolia,
-          transport,
-        });
-  
-        const l2Public = createPublicClient({
-          chain: zksyncOSTestnet,
-          transport: http(rpc),
-        });
-  
-        const l2Wallet = createWalletClient({
-          account: addr,
-          chain: zksyncOSTestnet,
-          transport,
-        });
-  
-        const client = createViemClient({
-          l1: l1Client as any,
-          l2: l2Public as any,
-          l1Wallet: l1Wallet as any,
-          l2Wallet: l2Wallet as any,
-        } as any);
-  
-        const instance = createViemSdk(client);
-        return instance;
-      },
-      []
-    );
-  
-    useEffect(() => {
-        async function setup() {
-          if (!account || !account.connector || !account.connector.getProvider)
-            return;
-          const provider = (await account.connector.getProvider()) as
-            | EIP1193Provider
-            | undefined;
-          if (!provider) {
-            alert("No injected wallet found. Connect your wallet again.");
-            return;
-          }
-          const instance = await instantiateSdk(
-            account.address!,
-            provider,
-            DEFAULT_L2_RPC
-          );
-          setSdk(instance);
-        }
-    
-        setup();
-      }, [account]);
 
   return (
     <>
@@ -114,7 +55,7 @@ export default function SupplyAndBorrow({ account }: { account: UseAccountReturn
           >
             <h3 className="font-bold text-lg">Your supplies</h3>
 
-            <SuppliedAssets sdk={sdk} />
+            <SuppliedAssets isLoading={isLoading} latestHashes={latestHashes} finalizingDeposits={finalizingDeposits} ethBalance={ethBalance}/>
           </div>
 
           <div
@@ -122,7 +63,7 @@ export default function SupplyAndBorrow({ account }: { account: UseAccountReturn
             style={{ backgroundColor: "var(--container)" }}
           >
             <h3 className="font-bold text-lg">Assets to supply</h3>
-           <AssetsToSupply sdk={sdk} />
+           <AssetsToSupply sdk={sdk} setUpdateCount={setUpdateCount} updateCount={updateCount} />
           </div>
         </div>
 
