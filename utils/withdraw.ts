@@ -39,7 +39,7 @@ export async function initWithdraw(
     if (!json.ok) {
       throw new Error("error sending txn for finalization");
     }
-    storeRecentHash(hash);
+    storeRecentHash(hash, account.address!);
     return hash;
   } catch (e) {
     alert("something went wrong");
@@ -93,8 +93,8 @@ async function checkChainId(account: UseAccountReturnType<Config>) {
   }
 }
 
-function storeRecentHash(hash: string): void {
-  const key = "latestAaveZKsyncDeposits";
+function storeRecentHash(hash: string, accountAddress: `0x${string}`): void {
+  const key = `latestAaveZKsyncDeposits-${accountAddress}`;
 
   const stored = localStorage.getItem(key);
   let hashes: string[] = [];

@@ -2,7 +2,7 @@
 import { Inter } from "next/font/google";
 import { http, useAccount, useChainId } from "wagmi";
 import { NavItems } from "@/components/NavItems";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import SupplyAndBorrow from "@/components/SupplyAndBorrow";
 import Stats from "@/components/Stats";
@@ -22,6 +22,7 @@ import {
 } from "@dutterbutter/zksync-sdk/viem";
 import { sepolia } from "viem/chains";
 import { DepositRow, HashInfo, WithdrawalPhase } from "@/utils/types";
+import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -123,11 +124,18 @@ export default function Home() {
     setupSdk();
   }, [account]);
 
+  const usdValue = useMemo(
+    () =>
+      Math.round(parseFloat(ethBalance || "0.00") * (ethPrice || 3500) * 100) /
+      100,
+    [ethBalance, ethPrice]
+  );
+
   useEffect(() => {
     async function checkStatus() {
-      if (!hasMounted || !sdk) return;
+      if (!hasMounted || !sdk || !account) return;
       setIsLoading(true);
-      const hashes = localStorage.getItem("latestAaveZKsyncDeposits");
+      const hashes = localStorage.getItem(`latestAaveZKsyncDeposits-${account.address}`);
       if (!hashes) {
         setIsLoading(false);
         console.log("no hashes");
@@ -192,7 +200,7 @@ export default function Home() {
   }, [sdk, hasMounted, updateCount]);
 
   return (
-    <div className={`${inter.className} font-sans`}>
+    <div className={`${inter.className} font-sans pb-12`}>
       <div className="border-b border-gray-700 flex align-middle gap-10 px-4">
         <Image src="aave.svg" alt="Aave logo" width={72} height={72} />
         <NavItems />
@@ -201,15 +209,11 @@ export default function Home() {
         </div>
       </div>
       <div>
-        {account.isConnected && hasMounted && (
+        {account.isConnected && hasMounted ? (
           <>
             {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
-                <Stats
-                  isLoading={isLoading}
-                  ethBalance={ethBalance || "0.00"}
-                  ethPrice={ethPrice || 3500}
-                />
+                <Stats isLoading={isLoading} usdValue={usdValue} />
                 <SupplyAndBorrow
                   sdk={sdk}
                   isLoading={isLoading}
@@ -219,6 +223,7 @@ export default function Home() {
                   setUpdateCount={setUpdateCount}
                   updateCount={updateCount}
                   ethPrice={ethPrice || 3500}
+                  usdValue={usdValue}
                 />
               </div>
             ) : (
@@ -227,6 +232,10 @@ export default function Home() {
               </div>
             )}
           </>
+        ) : (
+          <div className="mt-12 mx-12">
+            <ConnectWalletPaper account={account} isMounted={hasMounted} />
+          </div>
         )}
       </div>
     </div>

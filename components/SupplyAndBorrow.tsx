@@ -16,12 +16,13 @@ interface Props{
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
   ethPrice: number;
+  usdValue: number;
 }
 
-export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizingDeposits, ethBalance, setUpdateCount, updateCount, ethPrice }: Props) {
+export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizingDeposits, ethBalance, setUpdateCount, updateCount, ethPrice, usdValue }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const { breakpoints } = useTheme();
-  const isDesktop = useMediaQuery(breakpoints.up("lg"));
+  const isDesktop = useMediaQuery(breakpoints.up(1260));
 
   return (
     <>
@@ -55,8 +56,7 @@ export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizi
             style={{ backgroundColor: "var(--container)" }}
           >
             <h3 className="font-bold text-lg">Your supplies</h3>
-
-            <SuppliedAssets isLoading={isLoading} latestHashes={latestHashes} finalizingDeposits={finalizingDeposits} ethBalance={ethBalance}/>
+            <SuppliedAssets isLoading={isLoading} latestHashes={latestHashes} finalizingDeposits={finalizingDeposits} ethBalance={ethBalance} usdValue={usdValue}/>
           </div>
 
           <div
@@ -64,7 +64,7 @@ export default function SupplyAndBorrow({ sdk, isLoading, latestHashes, finalizi
             style={{ backgroundColor: "var(--container)" }}
           >
             <h3 className="font-bold text-lg">Assets to supply</h3>
-           <AssetsToSupply sdk={sdk} setUpdateCount={setUpdateCount} updateCount={updateCount} ethPrice={ethPrice} />
+           <AssetsToSupply sdk={sdk} setUpdateCount={setUpdateCount} updateCount={updateCount} ethPrice={ethPrice} isLoading={isLoading} />
           </div>
         </div>
 
