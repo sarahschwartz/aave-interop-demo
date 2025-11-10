@@ -179,9 +179,6 @@ export default function Home() {
         const totalWei = rows.reduce((acc, r) => acc + r.valueWei, BigInt(0));
         const anyFinalizing = rows.filter((r) => r.phase !== "FINALIZED");
 
-        console.log("total eth:", formatEther(totalWei));
-        console.log("anyFinalizing:", anyFinalizing);
-
         setEthBalance(formatEther(totalWei));
         setFinalizingDeposits(anyFinalizing);
       } catch (e) {

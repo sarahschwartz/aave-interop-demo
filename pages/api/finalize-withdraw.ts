@@ -30,17 +30,10 @@ const client = createViemClient({ l1, l2, l1Wallet, l2Wallet });
 const sdk = createViemSdk(client);
 
 async function finalizeWithdrawal(hash: `0x${string}`) {
-  console.log("STATUS (initial):", await sdk.withdrawals.status(hash));
-
-  const l2Receipt = await sdk.withdrawals.wait(hash, { for: "l2" });
-  console.log("L2 included tx:", l2Receipt?.transactionHash);
-
+  const status = await sdk.withdrawals.status(hash);
+  if(status.phase === 'UNKNOWN' || status.phase === 'FINALIZED') return;
   await sdk.withdrawals.wait(hash, { for: "ready" });
-  console.log("STATUS (ready):", await sdk.withdrawals.status(hash));
-
-  const fin = await sdk.withdrawals.tryFinalize(hash);
-  console.log('TRY FINALIZE:', fin);
-
+  await sdk.withdrawals.tryFinalize(hash);
   const l1Receipt = await sdk.withdrawals.wait(hash, { for: 'finalized' });
   console.log('Finalized. L1 receipt:', l1Receipt?.transactionHash);
 }
