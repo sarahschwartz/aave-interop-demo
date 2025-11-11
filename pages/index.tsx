@@ -23,6 +23,8 @@ import {
 import { sepolia } from "viem/chains";
 import { DepositRow, HashInfo, WithdrawalPhase } from "@/utils/types";
 import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
+import { SvgIcon } from "@mui/material";
+import { InformationCircleIcon } from "@heroicons/react/outline";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -135,7 +137,9 @@ export default function Home() {
     async function checkStatus() {
       if (!hasMounted || !sdk || !account) return;
       setIsLoading(true);
-      const hashes = localStorage.getItem(`latestAaveZKsyncDeposits-${account.address}`);
+      const hashes = localStorage.getItem(
+        `latestAaveZKsyncDeposits-${account.address}`
+      );
       if (!hashes) {
         setIsLoading(false);
         console.log("no hashes");
@@ -202,13 +206,21 @@ export default function Home() {
   return (
     <div className={`${inter.className} font-sans pb-12`}>
       <div className="border-b border-gray-700 flex align-middle gap-10 px-4">
+        <div className='flex gap-2 mr-12'>
         <Image src="aave.svg" alt="Aave logo" width={72} height={72} />
+        <button className="bg-[#B6509E] hover:opacity-70 cursor-pointer text-white text-[10px] font-bold flex gap-0.5 items-center px-2 py-1 rounded-sm my-auto">
+          TESTNET
+          <SvgIcon sx={{ marginLeft: "2px", fontSize: "16px" }}>
+            <InformationCircleIcon />
+          </SvgIcon>
+        </button>
+        </div>
         <NavItems />
         <div className="w-full flex justify-end">
           <ConnectButton account={account} isMounted={hasMounted} />
         </div>
       </div>
-      <div>
+      <div className='px-12'>
         {account.isConnected && hasMounted ? (
           <>
             {currentChainId === zksyncOSTestnet.id ? (

@@ -178,7 +178,7 @@ export default function EthSupplyForm({
                   <button
                     type="button"
                     onClick={handleMax}
-                    className="py-0.5 text-xs font-semibold tracking-wide text-slate-200 hover:bg-slate-700"
+                    className="cursor-pointer py-0.5 text-xs font-semibold tracking-wide text-slate-200 hover:bg-slate-700"
                   >
                     MAX
                   </button>

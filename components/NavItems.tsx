@@ -42,7 +42,7 @@ const navigation: Navigation[] = [
   return (
     <List
       sx={{
-        display: 'flex',
+        display: { xs: 'none', sm: 'none', md: 'flex' },
         justifyContent: 'center',
         flexDirection: 'row',
       }}

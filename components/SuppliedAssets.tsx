@@ -63,8 +63,8 @@ export function SuppliedAssets({
                   isLoading
                     ? "loading..."
                     : finalizingDeposits && finalizingDeposits.length > 0
-                    ? `${finalizingDeposits.length} tx still finalizing on L1`
-                    : "all txns finalized"
+                    ? `${finalizingDeposits.length} ${finalizingDeposits.length === 1 ? 'txn' : 'txns'} still finalizing on L1. This usually takes ~7 minutes.`
+                    : "All txns finalized ✅"
                 }
               />
             </div>

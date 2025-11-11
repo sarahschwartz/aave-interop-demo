@@ -89,7 +89,9 @@ export default function AssetsToSupply({
             <div className={tableHeaderStyle}>Wallet balance</div>
             <div className={tableHeaderStyle}>APY</div>
             <div className={tableHeaderStyle}>Can be collateral</div>
-            <div className={tableHeaderStyle}><span className="opacity-0">-</span></div>
+            <div className={tableHeaderStyle}>
+              <span className="opacity-0">-</span>
+            </div>
 
             {isLoading ? (
               <SkeletonAsset />

@@ -7,7 +7,7 @@ export default async function handler(
   if (req.method !== "POST") return res.status(405).end();
 
   const { hash } = req.body;
-  console.log("started withdraw for" + hash);
+  console.log("started withdraw for " + hash);
 
   const targetUrl = `http://${req.headers.host}/api/finalize-withdraw`;
   const fetchURL = `${process.env.QSTASH_URL}/v2/publish/${targetUrl}`;
