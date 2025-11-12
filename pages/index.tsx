@@ -179,7 +179,9 @@ export default function Home() {
     }
 
     checkStatus();
-  }, [sdk, hasMounted, updateCount, account, client]);
+    // don't refresh on network change because user will be switching between L2 and L1
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sdk, hasMounted, updateCount]);
 
   return (
     <div className={`${inter.className} font-sans pb-12`}>

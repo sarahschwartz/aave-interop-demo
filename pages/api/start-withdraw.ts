@@ -19,7 +19,7 @@ export default async function handler(
         ? { Authorization: `Bearer ${process.env.QSTASH_TOKEN}` }
         : {}),
       "Content-Type": "application/json",
-      "Upstash-Delay": "7m",
+      "Upstash-Delay": "6m",
     },
     body: JSON.stringify({ hash }),
   });
