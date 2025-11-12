@@ -41,7 +41,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (typeof CACHE.price === "number") {
       return res.status(200).json({ ok: true, ethPrice: CACHE.price, cached: true, stale: true });
     }
-    console.log("here")
     return res.status(500).json({ ok: false, error: e?.message ?? "Failed to fetch price" });
   }
 }

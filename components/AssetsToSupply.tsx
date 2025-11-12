@@ -1,8 +1,8 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useAccount, useBalance } from "wagmi";
+import { Config, useAccount, UseAccountReturnType, useBalance } from "wagmi";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import SupplyForm from "./SupplyForm";
-import { type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import {
   SkeletonAsset,
   SkeletonBasic,
@@ -11,23 +11,26 @@ import {
 
 interface Props {
   sdk?: ViemSdk;
+  client?: ViemClient;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
   ethPrice: number;
   isLoading: boolean;
+  account: UseAccountReturnType<Config>;
 }
 
 export default function AssetsToSupply({
   sdk,
+  client,
   setUpdateCount,
   updateCount,
   ethPrice,
   isLoading,
+  account
 }: Props) {
   const [showAssetsWith0Balance, setShowAssetsWith0Balance] =
     useState<boolean>(false);
   const [showSupplyModal, setShowSupplyModal] = useState<boolean>(false);
-  const account = useAccount();
   const { data, refetch } = useBalance({ address: account?.address });
 
   useEffect(() => {
@@ -161,6 +164,7 @@ export default function AssetsToSupply({
                   setShowSupplyModal={setShowSupplyModal}
                   account={account}
                   sdk={sdk}
+                  client={client}
                   setUpdateCount={setUpdateCount}
                   ethPrice={ethPrice}
                 />

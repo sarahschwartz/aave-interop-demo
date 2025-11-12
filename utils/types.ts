@@ -1,16 +1,17 @@
-import type { Hash, WithdrawalStatus } from "@dutterbutter/zksync-sdk";
-
-export interface HashInfo {
-  hash: string;
-  status: WithdrawalStatus;
-}
+import type { Hash } from "@dutterbutter/zksync-sdk";
 
 export type DepositRow = {
   hash: Hash;
   valueWei: bigint;
-  valueEth: string;
   phase: WithdrawalPhase;
+  bundleHash: Hash;
 };
+
+export type HashItem = { 
+  hash: Hash;
+  isFinalized: boolean;
+  bundleHash: Hash;
+}
 
 
 export type WithdrawalPhase =

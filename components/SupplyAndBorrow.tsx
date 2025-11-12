@@ -3,24 +3,28 @@ import StyledToggleButton from "@/components/ui/StyledToggleButton";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { Dispatch, SetStateAction, useState } from "react";
 import AssetsToSupply from "./AssetsToSupply";
-import { type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import { SuppliedAssets } from "./SuppliedAssets";
-import type { DepositRow, HashInfo } from "@/utils/types";
+import type { DepositRow } from "@/utils/types";
+import { UseAccountReturnType, Config } from "wagmi";
 
 interface Props {
   sdk?: ViemSdk;
+  client?: ViemClient;
   isLoading: boolean;
-  latestHashes: HashInfo[];
+  latestHashes: DepositRow[];
   finalizingDeposits: DepositRow[];
   ethBalance: string;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
   ethPrice: number;
   usdValue: number;
+  account: UseAccountReturnType<Config>;
 }
 
 export default function SupplyAndBorrow({
   sdk,
+  client,
   isLoading,
   latestHashes,
   finalizingDeposits,
@@ -29,6 +33,7 @@ export default function SupplyAndBorrow({
   updateCount,
   ethPrice,
   usdValue,
+  account
 }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const [assetsToSupplyCollapsed, setAssetsToSupplyCollapsed] =
@@ -125,6 +130,9 @@ export default function SupplyAndBorrow({
                 finalizingDeposits={finalizingDeposits}
                 ethBalance={ethBalance}
                 usdValue={usdValue}
+                client={client}
+                account={account}
+                setUpdateCount={setUpdateCount}
               />
             )}
           </div>
@@ -148,10 +156,12 @@ export default function SupplyAndBorrow({
             {!assetsToSupplyCollapsed && (
               <AssetsToSupply
                 sdk={sdk}
+                client={client}
                 setUpdateCount={setUpdateCount}
                 updateCount={updateCount}
                 ethPrice={ethPrice}
                 isLoading={isLoading}
+                account={account}
               />
             )}
           </div>

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import SupplyAndBorrow from "@/components/SupplyAndBorrow";
 import Stats from "@/components/Stats";
-import { zksyncOSTestnet } from "@/utils/wagmi";
+import { config, zksyncOSTestnet } from "@/utils/wagmi";
 import ConnectButton from "@/components/ConnectButton";
 import {
   createPublicClient,
@@ -18,13 +18,20 @@ import {
 import {
   createViemClient,
   createViemSdk,
+  type ViemClient,
   type ViemSdk,
 } from "@dutterbutter/zksync-sdk/viem";
 import { sepolia } from "viem/chains";
-import { DepositRow, HashInfo, WithdrawalPhase } from "@/utils/types";
+import type { DepositRow } from "@/utils/types";
 import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
 import { SvgIcon } from "@mui/material";
 import { InformationCircleIcon } from "@heroicons/react/outline";
+import {
+  getAaveDepositSummary,
+  getHashes,
+  getShadowAccount,
+} from "@/utils/withdraw";
+import { getBalance } from "@wagmi/core";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -35,13 +42,14 @@ export default function Home() {
   const account = useAccount();
   const currentChainId = useChainId();
   const [hasMounted, setHasMounted] = useState(false);
-  const [latestHashes, setLatestHashes] = useState<HashInfo[]>([]);
+  const [latestHashes, setLatestHashes] = useState<DepositRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
   const [ethPrice, setEthPrice] = useState<number>();
   const [finalizingDeposits, setFinalizingDeposits] = useState<DepositRow[]>();
   const [sdk, setSdk] = useState<ViemSdk>();
+  const [client, setClient] = useState<ViemClient>();
 
   useEffect(() => {
     async function getPrice() {
@@ -65,11 +73,6 @@ export default function Home() {
   const DEFAULT_L1_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
   const DEFAULT_L2_RPC = "https://zksync-os-testnet-alpha.zksync.dev/";
 
-  const l1Client = createPublicClient({
-    chain: sepolia,
-    transport: http(DEFAULT_L1_RPC),
-  });
-
   const instantiateSdk = useCallback(
     async (addr: `0x${string}`, prov: EIP1193Provider, rpc: string) => {
       const transport = custom(prov);
@@ -78,6 +81,11 @@ export default function Home() {
         account: addr,
         chain: sepolia,
         transport,
+      });
+
+      const l1Client = createPublicClient({
+        chain: sepolia,
+        transport: http(DEFAULT_L1_RPC),
       });
 
       const l2Public = createPublicClient({
@@ -97,9 +105,8 @@ export default function Home() {
         l1Wallet: l1Wallet as any,
         l2Wallet: l2Wallet as any,
       } as any);
-
       const instance = createViemSdk(client);
-      return instance;
+      return { instance, client };
     },
     []
   );
@@ -115,15 +122,17 @@ export default function Home() {
         alert("No injected wallet found. Connect your wallet again.");
         return;
       }
-      const instance = await instantiateSdk(
+      const { instance, client } = await instantiateSdk(
         account.address!,
         provider,
         DEFAULT_L2_RPC
       );
       setSdk(instance);
+      setClient(client);
     }
 
     setupSdk();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account]);
 
   const usdValue = useMemo(
@@ -135,64 +144,33 @@ export default function Home() {
 
   useEffect(() => {
     async function checkStatus() {
-      if (!hasMounted || !sdk || !account) return;
+      if (!hasMounted || !sdk || !account || !client) return;
       setIsLoading(true);
-      const hashes = localStorage.getItem(
-        `latestAaveZKsyncDeposits-${account.address}`
-      );
+      const shadowAccount = await getShadowAccount(client, account);
+      const aTokenBalance = await getBalance(config, {
+        address: shadowAccount,
+        chainId: sepolia.id,
+        // aEthWETH token on sepolia
+        token: "0x5b071b590a59395fE4025A0Ccc1FcC931AAc1830",
+      });
+      const hashes = getHashes(account.address!);
       if (!hashes) {
+        setEthBalance(formatEther(aTokenBalance.value));
         setIsLoading(false);
-        console.log("no hashes");
         return;
       }
 
       try {
-        const json = JSON.parse(hashes);
-        console.log("latest Hashes:", json);
-        setLatestHashes(json);
-
-        const client = createPublicClient({
-          chain: zksyncOSTestnet,
-          transport: http(),
-        });
-
-        const [txs, phases] = await Promise.all([
-          Promise.allSettled(
-            json.map((hash: `0x${string}`) => client.getTransaction({ hash }))
-          ),
-          Promise.allSettled(
-            json.map((hash: `0x${string}`) => sdk.withdrawals.status(hash))
-          ),
-        ]);
-
-        const rows: DepositRow[] = json.map(
-          (hash: `0x${string}`, i: number) => {
-            const txR = txs[i];
-            const stR = phases[i];
-
-            const valueWei =
-              txR.status === "fulfilled" && txR.value
-                ? txR.value.value || BigInt(0)
-                : BigInt(0);
-            const phase =
-              stR.status === "fulfilled"
-                ? stR.value.phase
-                : ("PENDING" as WithdrawalPhase);
-
-            return {
-              hash,
-              valueWei,
-              valueEth: formatEther(valueWei),
-              phase,
-            };
-          }
+        const { totalWei, rows, anyFinalizing } = await getAaveDepositSummary(
+          sdk,
+          account.address!,
+          hashes,
+          client
         );
 
-        const totalWei = rows.reduce((acc, r) => acc + r.valueWei, BigInt(0));
-        const anyFinalizing = rows.filter((r) => r.phase !== "FINALIZED");
-
-        setEthBalance(formatEther(totalWei));
+        setEthBalance(formatEther(totalWei + aTokenBalance.value));
         setFinalizingDeposits(anyFinalizing);
+        setLatestHashes(rows);
       } catch (e) {
         console.log("ERROR:", e);
       } finally {
@@ -201,33 +179,35 @@ export default function Home() {
     }
 
     checkStatus();
-  }, [sdk, hasMounted, updateCount]);
+  }, [sdk, hasMounted, updateCount, account, client]);
 
   return (
     <div className={`${inter.className} font-sans pb-12`}>
       <div className="border-b border-gray-700 flex align-middle gap-10 px-4">
-        <div className='flex gap-2 mr-12'>
-        <Image src="aave.svg" alt="Aave logo" width={72} height={72} />
-        <button className="bg-[#B6509E] hover:opacity-70 cursor-pointer text-white text-[10px] font-bold flex gap-0.5 items-center px-2 py-1 rounded-sm my-auto">
-          TESTNET
-          <SvgIcon sx={{ marginLeft: "2px", fontSize: "16px" }}>
-            <InformationCircleIcon />
-          </SvgIcon>
-        </button>
+        <div className="flex gap-2 mr-12">
+          <Image src="aave.svg" alt="Aave logo" width={72} height={72} />
+          <button className="bg-[#B6509E] hover:opacity-70 cursor-pointer text-white text-[10px] font-bold flex gap-0.5 items-center px-2 py-1 rounded-sm my-auto">
+            TESTNET
+            <SvgIcon sx={{ marginLeft: "2px", fontSize: "16px" }}>
+              <InformationCircleIcon />
+            </SvgIcon>
+          </button>
         </div>
         <NavItems />
         <div className="w-full flex justify-end">
           <ConnectButton account={account} isMounted={hasMounted} />
         </div>
       </div>
-      <div className='px-12'>
+      <div className="px-12">
         {account.isConnected && hasMounted ? (
           <>
-            {currentChainId === zksyncOSTestnet.id ? (
+            {currentChainId === zksyncOSTestnet.id ||
+            currentChainId === sepolia.id ? (
               <div className="mt-12 mx-12">
                 <Stats isLoading={isLoading} usdValue={usdValue} />
                 <SupplyAndBorrow
                   sdk={sdk}
+                  client={client}
                   isLoading={isLoading}
                   latestHashes={latestHashes}
                   finalizingDeposits={finalizingDeposits || []}
@@ -236,6 +216,7 @@ export default function Home() {
                   updateCount={updateCount}
                   ethPrice={ethPrice || 3500}
                   usdValue={usdValue}
+                  account={account}
                 />
               </div>
             ) : (

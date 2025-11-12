@@ -1,29 +1,44 @@
-import { estimateGas, initWithdraw } from "@/utils/withdraw";
-import { ViemSdk } from "@dutterbutter/zksync-sdk/viem";
-import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
-import { UseAccountReturnType, type Config } from "wagmi";
+import { getBundle, getShadowAccount, initWithdraw, storeHashes } from "@/utils/withdraw";
+import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useMemo,
+  useState,
+} from "react";
+import {
+  UseAccountReturnType,
+  type Config,
+} from "wagmi";
 import SupplySuccessForm from "./SupplySuccessForm";
 import Spinner from "./ui/Spinner";
-import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import Tooltip from "./ui/Tooltip";
+import { parseEther } from "viem";
+import { writeContract } from '@wagmi/core'
+import { config } from "@/utils/wagmi";
 
 type Props = {
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   sdk?: ViemSdk;
+  client?: ViemClient;
   account: UseAccountReturnType<Config>;
   balance: number | bigint;
   ethPrice: number;
 };
 
-  const Error = () => (
-    <div className='text-center p-4 bg-red-500 opacity-75 rounded-sm'>oops, something went wrong</div>
-  )
+const Error = () => (
+  <div className="text-center p-4 bg-red-500 opacity-75 rounded-sm">
+    oops, something went wrong
+  </div>
+);
 
 export default function EthSupplyForm({
   setShowSupplyModal,
   setUpdateCount,
   sdk,
+  client,
   account,
   balance,
   ethPrice,
@@ -32,7 +47,7 @@ export default function EthSupplyForm({
   const [isPending, setIsPending] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [hash, setHash] = useState<string>();
+  const [hashes, setHashes] = useState<[`0x${string}`, `0x${string}`]>();
   // const [gasEstimate, setGasEstimate] = useState<bigint>();
 
   const amountNumber = useMemo(
@@ -40,7 +55,7 @@ export default function EthSupplyForm({
     [amount]
   );
 
-    const usdValue = useMemo(
+  const usdValue = useMemo(
     () => Math.round(amountNumber * ethPrice * 100) / 100,
     [amountNumber, ethPrice]
   );
@@ -53,20 +68,24 @@ export default function EthSupplyForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !sdk || !account) {
-      console.log("no amount or sdk");
-      console.log("amount:", amount);
-      console.log("sdk:", sdk);
+    if (!amount || !sdk || !account || !client) {
+      console.log("missing amount, sdk, account, or client");
       return;
     }
     setIsPending(true);
 
     try {
-      const hash = await initWithdraw(account, amount, sdk);
-      if (!hash) {
+      const shadowAccount = await getShadowAccount(client, account);
+      const wei = parseEther(amount);
+      const wHash = await initWithdraw(account, wei, sdk, shadowAccount);
+      const bundle = await getBundle(shadowAccount, wei);
+      const bHash= await writeContract(config, bundle)
+     
+      if (!wHash || !bHash) {
         setIsError(true);
       } else {
-        setHash(hash);
+        storeHashes(wHash, bHash, account.address!);
+        setHashes([wHash, bHash]);
         setIsSuccess(true);
         setUpdateCount((prev) => prev + 1);
       }
@@ -84,27 +103,28 @@ export default function EthSupplyForm({
     const value =
       e.target.value > balance ? balance.toString() : e.target.value;
     setAmount(value);
-  //   if(!sdk) return;
-  //   const quote = await estimateGas(account, value, sdk);
-  //   if(quote?.suggestedL2GasLimit){
-  //     setGasEstimate(quote.suggestedL2GasLimit);
-  //   }
+    //
+    //   if(!sdk) return;
+    //   const quote = await estimateGas(account, parseEther(value), sdk);
+    //   if(quote?.suggestedL2GasLimit){
+    //     setGasEstimate(quote.suggestedL2GasLimit);
+    //   }
   }
 
   return (
     <>
-    {isError && <Error/>}
+      {isError && <Error />}
       {isSuccess ? (
         <>
-        {!hash ? (
-          <Error/>
-        ) : (
-        <SupplySuccessForm
-          amount={amount}
-          setShowSupplyModal={setShowSupplyModal}
-          hash="0xf6060362d623c5bbaa8d58a2cf62ceec5bcb9bd20d0a65b82b1e183adaa9442c"
-        />
-        )}
+          {!hashes ? (
+            <Error />
+          ) : (
+            <SupplySuccessForm
+              amount={amount}
+              setShowSupplyModal={setShowSupplyModal}
+              hashes={hashes}
+            />
+          )}
         </>
       ) : (
         <div>
@@ -122,8 +142,10 @@ export default function EthSupplyForm({
           <form onSubmit={handleSubmit} className="rounded-2xl text-slate-100">
             <div className="mb-2 flex items-center gap-2 text-slate-400">
               <span className="text-sm font-medium">Amount</span>
-              <Tooltip text='This is the total amount that you are able to supply to in this reserve. You are able to
-        supply your wallet balance up until the supply cap is reached.' />
+              <Tooltip
+                text="This is the total amount that you are able to supply to in this reserve. You are able to
+        supply your wallet balance up until the supply cap is reached."
+              />
             </div>
 
             <div className="rounded-sm border border-slate-700">
@@ -146,7 +168,7 @@ export default function EthSupplyForm({
                         alt="cancel"
                         className="cursor-pointer h-4 w-4"
                         draggable={false}
-                        onClick={() => setAmount('')}
+                        onClick={() => setAmount("")}
                       />
                     </>
                   )}
@@ -157,9 +179,7 @@ export default function EthSupplyForm({
                     className="h-6 w-6"
                     draggable={false}
                   />
-                  <span className="text-md font-semibold mr-6">
-                    ETH
-                  </span>
+                  <span className="text-md font-semibold mr-6">ETH</span>
                 </div>
               </div>
 
@@ -207,11 +227,16 @@ export default function EthSupplyForm({
             </div>
 
             <div className="text-white pt-6 flex items-center gap-1">
-              <LocalGasStationIcon color="inherit" sx={{ fontSize: '16px' }} />
-              <div className='text-gray-400 text-[12px]'>{amountIsGreaterThanZero ? '< $ 0.01' : '-'}</div>
-              {amountIsGreaterThanZero && <Tooltip text='This gas calculation is only an estimation. Your wallet will set the price of the
-        transaction. You can modify the gas settings directly from your wallet provider.'/>}
-              
+              <LocalGasStationIcon color="inherit" sx={{ fontSize: "16px" }} />
+              <div className="text-gray-400 text-[12px]">
+                {amountIsGreaterThanZero ? "< $ 0.01" : "-"}
+              </div>
+              {amountIsGreaterThanZero && (
+                <Tooltip
+                  text="This gas calculation is only an estimation. Your wallet will set the price of the
+        transaction. You can modify the gas settings directly from your wallet provider."
+                />
+              )}
             </div>
 
             <button
@@ -223,9 +248,10 @@ export default function EthSupplyForm({
                   : "bg-gray-600 text-slate-500"
               } mt-12 py-2 w-full rounded-md flex gap-4 justify-center`}
             >
-              {isPending && <Spinner/>}
-              {isPending ? 'Supplying ETH' : 
-              amountIsGreaterThanZero
+              {isPending && <Spinner />}
+              {isPending
+                ? "Supplying ETH"
+                : amountIsGreaterThanZero
                 ? "Supply ETH"
                 : "Enter an amount"}
             </button>

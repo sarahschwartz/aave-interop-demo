@@ -5,7 +5,7 @@ import { WalletIcon } from "./ui/WalletIcon";
 
 type Props = {
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
-  hash: string;
+  hashes: [`0x${string}`, `0x${string}`];
   amount: string;
 };
 
@@ -22,7 +22,7 @@ function addSupplyTokenToWallet() {
 
 export default function SupplySuccessForm({
   setShowSupplyModal,
-  hash,
+  hashes,
   amount,
 }: Props) {
   return (
@@ -66,11 +66,21 @@ export default function SupplySuccessForm({
 
       <a
         target="_blank"
-        href={`https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev/tx/${hash}`}
+        href={`https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev/tx/${hashes[0]}`}
         rel="noopener noreferrer"
       >
         <div className="text-center mt-4 bg-gray-700 cursor-pointer border border-transparent hover:border-gray-200 py-2 w-full rounded-md">
-          <span>Review tx details</span>
+          <span>Review withdraw to L1 details</span>
+          <ExtLinkIcon />
+        </div>
+      </a>
+      <a
+        target="_blank"
+        href={`https://zksync-os-testnet-alpha.staging-scan-v2.zksync.dev/tx/${hashes[1]}`}
+        rel="noopener noreferrer"
+      >
+        <div className="text-center mt-4 bg-gray-700 cursor-pointer border border-transparent hover:border-gray-200 py-2 w-full rounded-md">
+          <span>Review tx bundle details</span>
           <ExtLinkIcon />
         </div>
       </a>
