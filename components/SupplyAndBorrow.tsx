@@ -5,15 +5,13 @@ import { Dispatch, SetStateAction, useState } from "react";
 import AssetsToSupply from "./AssetsToSupply";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import { SuppliedAssets } from "./SuppliedAssets";
-import type { DepositRow } from "@/utils/types";
 import { UseAccountReturnType, Config } from "wagmi";
 
 interface Props {
   sdk?: ViemSdk;
   client?: ViemClient;
   isLoading: boolean;
-  latestHashes: DepositRow[];
-  finalizingDeposits: DepositRow[];
+  finalizingDeposits: number;
   ethBalance: string;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
@@ -26,7 +24,6 @@ export default function SupplyAndBorrow({
   sdk,
   client,
   isLoading,
-  latestHashes,
   finalizingDeposits,
   ethBalance,
   setUpdateCount,
@@ -111,7 +108,7 @@ export default function SupplyAndBorrow({
           >
             <div className='flex justify-between'>
             <h3 className="font-bold text-lg">Your supplies</h3>
-            {latestHashes.length > 0 && (
+            {ethBalance && (
             <Box
               sx={() => collapseStyles(suppliedAssetsCollapsed)}
               onClick={() =>
@@ -126,13 +123,9 @@ export default function SupplyAndBorrow({
             {!suppliedAssetsCollapsed && (
               <SuppliedAssets
                 isLoading={isLoading}
-                latestHashes={latestHashes}
                 finalizingDeposits={finalizingDeposits}
                 ethBalance={ethBalance}
                 usdValue={usdValue}
-                client={client}
-                account={account}
-                setUpdateCount={setUpdateCount}
               />
             )}
           </div>

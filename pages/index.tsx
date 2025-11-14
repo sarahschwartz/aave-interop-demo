@@ -22,7 +22,6 @@ import {
   type ViemSdk,
 } from "@dutterbutter/zksync-sdk/viem";
 import { sepolia } from "viem/chains";
-import type { DepositRow } from "@/utils/types";
 import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
 import { SvgIcon } from "@mui/material";
 import { InformationCircleIcon } from "@heroicons/react/outline";
@@ -42,12 +41,11 @@ export default function Home() {
   const account = useAccount();
   const currentChainId = useChainId();
   const [hasMounted, setHasMounted] = useState(false);
-  const [latestHashes, setLatestHashes] = useState<DepositRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
   const [ethPrice, setEthPrice] = useState<number>();
-  const [finalizingDeposits, setFinalizingDeposits] = useState<DepositRow[]>();
+  const [finalizingDeposits, setFinalizingDeposits] = useState<number>(0);
   const [sdk, setSdk] = useState<ViemSdk>();
   const [client, setClient] = useState<ViemClient>();
 
@@ -161,16 +159,15 @@ export default function Home() {
       }
 
       try {
-        const { totalWei, rows, anyFinalizing } = await getAaveDepositSummary(
+        const { totalWeiFinalizing, countFinalizing } = await getAaveDepositSummary(
           sdk,
           account.address!,
           hashes,
           client
         );
 
-        setEthBalance(formatEther(totalWei + aTokenBalance.value));
-        setFinalizingDeposits(anyFinalizing);
-        setLatestHashes(rows);
+        setEthBalance(formatEther(totalWeiFinalizing + aTokenBalance.value));
+        setFinalizingDeposits(countFinalizing);
       } catch (e) {
         console.log("ERROR:", e);
       } finally {
@@ -179,9 +176,7 @@ export default function Home() {
     }
 
     checkStatus();
-    // don't refresh on network change because user will be switching between L2 and L1
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sdk, hasMounted, updateCount]);
+  }, [sdk, client, hasMounted, updateCount, account]);
 
   return (
     <div className={`${inter.className} font-sans pb-12`}>
@@ -211,8 +206,7 @@ export default function Home() {
                   sdk={sdk}
                   client={client}
                   isLoading={isLoading}
-                  latestHashes={latestHashes}
-                  finalizingDeposits={finalizingDeposits || []}
+                  finalizingDeposits={finalizingDeposits}
                   ethBalance={ethBalance || "0.00"}
                   setUpdateCount={setUpdateCount}
                   updateCount={updateCount}

@@ -12,9 +12,7 @@ import { UseAccountReturnType, Config } from "wagmi";
 import { type ViemClient, type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import L2_INTEROP_CENTER_JSON from "@/utils/abis/L2InteropCenter.json";
 import I_WRAPPED_TOKEN_JSON from "@/utils/abis/IWrappedTokenGatewayV3.json";
-import L1_INTEROP_HANDLER_JSON from "@/utils/abis/L1InteropHandler.json";
-import type { DepositRow, HashItem } from "./types";
-import { sepolia } from "viem/chains";
+import type { HashItem } from "./types";
 
 type ShadowAccountOp = {
   target: Address;
@@ -24,8 +22,6 @@ type ShadowAccountOp = {
 
 const deployedL2InteropCenter: `0x${string}` =
   "0xc64315efbdcD90B71B0687E37ea741DE0E6cEFac";
-const deployedL1InteropHandler: `0x${string}` =
-  "0xB0dD4151fdcCaAC990F473533C15BcF8CE10b1de";
 const aaveWeth: `0x${string}` = "0x387d311e47e80b498169e6fb51d3193167d89F7D";
 const aavePool: `0x${string}` = "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951";
 
@@ -90,63 +86,12 @@ export async function initWithdraw(
     }
     console.log("withdraw created:", hash);
 
-    const response = await fetch("/api/start-withdraw", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        hash,
-      }),
-    });
-
-    const json = await response.json();
-    if (!json.ok) {
-      throw new Error("error sending txn for finalization");
-    }
-
     return hash;
   } catch (e) {
     alert("something went wrong");
     console.log("ERROR:", e);
     return;
   }
-}
-
-export async function getFinalizeBundleParams(
-  bundleHash: `0x${string}`,
-  client: ViemClient
-) {
-  const proof = await client.zks.getL2ToL1LogProof(bundleHash, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rcpt = (await client.zks.getReceiptWithL2ToL1(bundleHash)) as any;
-  const logs = rcpt?.l2ToL1Logs;
-  if (!logs) {
-    console.log("missing l2tol1logs");
-    return;
-  }
-  const log = logs[0];
-  const sender = rcpt.to;
-  if (!sender) {
-    console.log("missing sender");
-    return;
-  }
-
-  const params = {
-    chainId: zksyncOSTestnet.id,
-    l2BatchNumber: proof.batchNumber,
-    l2MessageIndex: proof.id,
-    l2Sender: sender,
-    l2TxNumberInBatch: log.tx_number_in_block,
-    merkleProof: proof.proof,
-    message: "0x" + rcpt.logs[0].data.slice(130),
-  };
-
-  return {
-    address: deployedL1InteropHandler,
-    abi: L1_INTEROP_HANDLER_JSON.abi as Abi,
-    functionName: "receiveInteropFromL2",
-    args: [params],
-    chain: sepolia,
-  };
 }
 
 export async function estimateGas(
@@ -218,11 +163,30 @@ export function storeHashes(
     }
   }
 
-  // hashes will be removed from local storage once bundle is executed
-  // (withdraw hash):(is withdraw finalized):(bundle hash)
-  hashes.push(`${withdrawHash}:false:${bundleHash}`);
+  // hashes will be removed from local storage once withdraw is finalized and bundle is executed
+  // (withdraw hash)::(bundle hash)
+  hashes.push(`${withdrawHash}:${bundleHash}`);
 
   localStorage.setItem(key, JSON.stringify(hashes));
+}
+
+export async function sendHashesForFinalization(
+  wHash: `0x${string}`,
+  bHash: `0x${string}`
+) {
+  const response = await fetch("/api/start-withdraw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      withdrawHash: wHash,
+      bundleHash: bHash,
+    }),
+  });
+
+  const json = await response.json();
+  if (!json.ok) {
+    throw new Error("error sending txns for finalization");
+  }
 }
 
 export async function getAaveDepositSummary(
@@ -231,47 +195,61 @@ export async function getAaveDepositSummary(
   items: HashItem[],
   client: ViemClient
 ) {
-  const [txs, phases] = await Promise.all([
-    Promise.allSettled(
-      items.map((i) => client.l2.getTransaction({ hash: i.hash }))
-    ),
-    Promise.allSettled(items.map((i) => sdk.withdrawals.status(i.hash))),
-  ]);
+  const storageKey = `latestAaveZKsyncDeposits-${address}`;
 
-  const rows: DepositRow[] = items.map((item, i) => {
-    const txR = txs[i];
-    const stR = phases[i];
-
-    const valueWei =
-      txR.status === "fulfilled" && txR.value
-        ? txR.value.value ?? BigInt(0)
-        : BigInt(0);
-    const phase = stR.status === "fulfilled" ? stR.value.phase : "PENDING";
-
-    const isFinalized = phase === "FINALIZED";
-
-    if (!item.isFinalized && isFinalized) {
-      item.isFinalized = true;
-    }
-
+  if (!items.length) {
     return {
-      hash: item.hash,
-      valueWei,
-      phase,
-      bundleHash: item.bundleHash,
+      totalWeiFinalizing: BigInt(0),
+      countFinalizing: 0,
     };
-  });
+  }
 
-  const updatedStorage = JSON.stringify(
-    items.map((i: HashItem) => `${i.hash}:${i.isFinalized}:${i.bundleHash}`)
+  const statusResults = await Promise.allSettled(
+    items.map((i) => sdk.withdrawals.status(i.withdrawHash))
   );
-  const key = `latestAaveZKsyncDeposits-${address}`;
-  localStorage.setItem(key, updatedStorage);
 
-  const totalWei = rows.reduce((acc, r) => acc + r.valueWei, BigInt(0));
-  const anyFinalizing = rows.filter((r) => r.phase !== "FINALIZED");
+  const stillFinalizing: HashItem[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const s = statusResults[i];
+    const isFinalized =
+      s.status === "fulfilled" && s.value?.phase === "FINALIZED";
 
-  return { totalWei, rows, anyFinalizing };
+    if (!isFinalized) {
+      stillFinalizing.push(items[i]);
+    }
+  }
+
+  const updated = stillFinalizing.map(
+    (i) => `${i.withdrawHash}:${i.bundleHash}`
+  );
+  localStorage.setItem(storageKey, JSON.stringify(updated));
+
+  if (stillFinalizing.length === 0) {
+    return {
+      totalWeiFinalizing: BigInt(0),
+      countFinalizing: 0,
+    };
+  }
+
+  const txResults = await Promise.allSettled(
+    stillFinalizing.map((item) =>
+      client.l2.getTransaction({ hash: item.withdrawHash })
+    )
+  );
+
+  let totalWeiFinalizing = BigInt(0);
+
+  for (const tx of txResults) {
+    if (tx.status === "fulfilled" && tx.value) {
+      const raw = tx.value.value ?? BigInt(0);
+      totalWeiFinalizing += raw;
+    }
+  }
+
+  return {
+    totalWeiFinalizing,
+    countFinalizing: stillFinalizing.length,
+  };
 }
 
 export function getHashes(address: `0x${string}`): HashItem[] | undefined {
@@ -281,28 +259,12 @@ export function getHashes(address: `0x${string}`): HashItem[] | undefined {
   const parsed = JSON.parse(rawLocalStorageValue) as string[];
 
   const items = parsed.map((item) => {
-    const [hash, finalizedFlag, bundleHash] = item.split(":");
+    const [withdrawHash, bundleHash] = item.split(":");
     return {
-      hash: hash as Hash,
-      isFinalized: finalizedFlag === "true",
+      withdrawHash: withdrawHash as Hash,
       bundleHash: bundleHash as Hash,
     };
   });
 
   return items;
-}
-
-export function updateStoredHashes(
-  address: `0x${string}`,
-  executedBundles: `0x${string}`[]
-) {
-  const hashes = getHashes(address);
-  if (!hashes) return;
-  const key = `latestAaveZKsyncDeposits-${address}`;
-  const updatedStorage = JSON.stringify(
-    hashes
-      .filter((i: HashItem) => !executedBundles.includes(i.bundleHash))
-      .map((i: HashItem) => `${i.hash}:${i.isFinalized}:${i.bundleHash}`)
-  );
-  localStorage.setItem(key, updatedStorage);
 }

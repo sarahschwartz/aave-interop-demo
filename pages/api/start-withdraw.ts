@@ -6,8 +6,8 @@ export default async function handler(
 ) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { hash } = req.body;
-  console.log("started withdraw for " + hash);
+  const { withdrawHash, bundleHash } = req.body;
+  console.log(`started withdraw for ${withdrawHash} : ${bundleHash}`);
 
   const targetUrl = `http://${req.headers.host}/api/finalize-withdraw`;
   const fetchURL = `${process.env.QSTASH_URL}/v2/publish/${targetUrl}`;
@@ -21,7 +21,7 @@ export default async function handler(
       "Content-Type": "application/json",
       "Upstash-Delay": "6m",
     },
-    body: JSON.stringify({ hash }),
+    body: JSON.stringify({ withdrawHash, bundleHash }),
   });
 
   if (!r.ok) return res.status(500).json({ ok: false, error: await r.text() });

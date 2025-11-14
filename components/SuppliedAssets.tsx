@@ -1,84 +1,32 @@
 import { StyledSwitch } from "./ui/StyledSwitch";
-import type { DepositRow } from "@/utils/types";
 import Tooltip from "./ui/Tooltip";
 import {
   SkeletonAsset,
   SkeletonBasic,
   SkeletonButtons,
 } from "./ui/SkeletonSupplies";
-import {
-  checkChainId,
-  getFinalizeBundleParams,
-  updateStoredHashes,
-} from "@/utils/withdraw";
-import type { ViemClient } from "@dutterbutter/zksync-sdk/viem";
-import { type UseAccountReturnType, type Config } from "wagmi";
-import { writeContract } from "@wagmi/core";
-import { sepolia } from "viem/chains";
-import { Dispatch, SetStateAction } from "react";
-import { config } from "@/utils/wagmi";
-import { Hash } from "@dutterbutter/zksync-sdk";
 
 interface Props {
   isLoading: boolean;
-  latestHashes: DepositRow[];
-  finalizingDeposits: DepositRow[];
+  finalizingDeposits: number;
   ethBalance: string;
   usdValue: number;
-  client?: ViemClient;
-  account: UseAccountReturnType<Config>;
-  setUpdateCount: Dispatch<SetStateAction<number>>;
 }
 
 export function SuppliedAssets({
   isLoading,
-  latestHashes,
   finalizingDeposits,
   ethBalance,
   usdValue,
-  client,
-  account,
-  setUpdateCount,
 }: Props) {
   const tableHeaderStyle =
     "text-xs text-gray-300 border-b border-gray-500 pb-2";
 
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
 
-  async function finalizeBundles() {
-    const address = account.address;
-    if (!address || !client) return;
-    try {
-      // switches chain to sepolia
-      await checkChainId(account, sepolia.id);
-
-      const bundlesToFinalize = latestHashes.filter(
-        (i) => i.phase === "FINALIZED"
-      );
-      const bundleHashes: Hash[] = [];
-      for await (const i of bundlesToFinalize) {
-        const bundleParams = await getFinalizeBundleParams(
-          i.bundleHash,
-          client
-        );
-        if (!bundleParams) {
-          console.log("missing bundle params for " + i.bundleHash);
-          continue;
-        }
-        await writeContract(config, bundleParams);
-        bundleHashes.push(i.bundleHash);
-      }
-
-      console.log("bundle hashes:", bundleHashes);
-
-      updateStoredHashes(address, bundleHashes);
-      // needs to wait for local storage to update
-      await new Promise((resolve) => setTimeout(resolve, 3 * 1000));
-      setUpdateCount((prev) => prev + 1);
-    } catch (e) {
-      console.log("Error finalizing bundle", e);
-    }
-  }
+  const pendingText = `${finalizingDeposits} Aave ${
+    finalizingDeposits === 1 ? "deposit" : "deposits"
+  } still finalizing. This usually takes ~6 minutes.`;
 
   return (
     <div>
@@ -115,10 +63,8 @@ export function SuppliedAssets({
                 text={
                   isLoading
                     ? "loading..."
-                    : finalizingDeposits && finalizingDeposits.length > 0
-                    ? `${finalizingDeposits.length} ${
-                        finalizingDeposits.length === 1 ? "txn" : "txns"
-                      } still finalizing on L1. This usually takes ~5-7 minutes.`
+                    : finalizingDeposits > 0
+                    ? pendingText
                     : "All txns finalized ✅"
                 }
               />
@@ -164,23 +110,8 @@ export function SuppliedAssets({
               <SkeletonButtons />
             ) : (
               <div>
-                {latestHashes.length > 0 ? (
-                  <div>
-                    {latestHashes.some((row) => row.phase === "FINALIZED") ? (
-                      <button
-                        onClick={finalizeBundles}
-                        className="cursor-pointer bg-white text-black p-2 rounded-md text-sm"
-                      >
-                        Finalize L1 Aave Deposit
-                      </button>
-                    ) : (
-                      <div className="text-xs">
-                        {`${finalizingDeposits.length} ${
-                          finalizingDeposits.length === 1 ? "txn" : "txns"
-                        } still finalizing on L1. This usually takes ~5-7 minutes.`}
-                      </div>
-                    )}
-                  </div>
+                {finalizingDeposits > 0 ? (
+                  <div className="text-xs">{pendingText}</div>
                 ) : (
                   <div className="flex justify-end gap-2">
                     <button className="cursor-pointer bg-white text-black p-2 rounded-md text-sm">

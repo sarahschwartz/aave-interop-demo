@@ -1,4 +1,4 @@
-import { getBundle, getShadowAccount, initWithdraw, storeHashes } from "@/utils/withdraw";
+import { getBundle, getShadowAccount, initWithdraw, sendHashesForFinalization, storeHashes } from "@/utils/withdraw";
 import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import React, {
   Dispatch,
@@ -84,6 +84,7 @@ export default function EthSupplyForm({
       if (!wHash || !bHash) {
         setIsError(true);
       } else {
+        await sendHashesForFinalization(wHash, bHash);
         storeHashes(wHash, bHash, account.address!);
         setHashes([wHash, bHash]);
         setIsSuccess(true);

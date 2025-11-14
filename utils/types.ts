@@ -1,15 +1,7 @@
 import type { Hash } from "@dutterbutter/zksync-sdk";
 
-export type DepositRow = {
-  hash: Hash;
-  valueWei: bigint;
-  phase: WithdrawalPhase;
-  bundleHash: Hash;
-};
-
 export type HashItem = { 
-  hash: Hash;
-  isFinalized: boolean;
+  withdrawHash: Hash;
   bundleHash: Hash;
 }
 
