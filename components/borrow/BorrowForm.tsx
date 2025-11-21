@@ -14,9 +14,12 @@ import { ErrorBox } from "@/components/ui/ErrorBox";
 import BorrowSuccessForm from "./BorrowSuccessForm";
 import { BlueInfoBox } from "../ui/BlueInfoBox";
 import { GREEN_TEXT } from "@/utils/constants";
-import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
-import { SvgIcon } from '@mui/material';
-import { computeProjectedHealthFactorAfterGhoBorrow } from "@/utils/aave";
+import { ArrowNarrowRightIcon } from "@heroicons/react/solid";
+import { SvgIcon } from "@mui/material";
+import {
+  computeProjectedHealthFactorAfterGhoBorrow,
+  getHealthFactorColor,
+} from "@/utils/aave";
 import type { AaveData } from "@/utils/types";
 
 type Props = {
@@ -30,11 +33,10 @@ type Props = {
 };
 
 const ArrowRightIcon = (
-  <SvgIcon sx={{ fontSize: '14px', mx: 1, color: 'white' }}>
+  <SvgIcon sx={{ fontSize: "14px", mx: 1, color: "white" }}>
     <ArrowNarrowRightIcon />
   </SvgIcon>
 );
-
 
 export default function GHOBorrowForm({
   setShowBorrowModal,
@@ -43,7 +45,7 @@ export default function GHOBorrowForm({
   client,
   account,
   aaveData,
-  healthFactor
+  healthFactor,
 }: Props) {
   const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
@@ -59,31 +61,23 @@ export default function GHOBorrowForm({
 
   const amountIsGreaterThanZero = amount && parseFloat(amount) > 0;
 
-  const maxFormatted = parseFloat(formatEther(aaveData.maxAdditionalGho)).toLocaleString(
-        undefined,
-        {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }
+  const maxFormatted = parseFloat(
+    formatEther(aaveData.maxAdditionalGho)
+  ).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const newHealthFactor = () => {
+    if (amount && parseFloat(amount) > 0) {
+      const newHF = computeProjectedHealthFactorAfterGhoBorrow(
+        aaveData,
+        parseEther(amount)
       );
-
-      const getHealthFactorColor = (hf: number | undefined) => {
-        if(!hf || hf >= 3){
-        return GREEN_TEXT;
-        } else if (hf < 1.1) {
-          return 'text-[#F44336]'
-        } else {
-          return 'text-[#FFA726]'
-        }
-      }
-
-      const newHealthFactor = () => {
-        if(amount && parseFloat(amount) > 0){
-          const newHF = computeProjectedHealthFactorAfterGhoBorrow(aaveData, parseEther(amount));
-          return newHF;
-        }
-        return undefined;
-      } 
+      return newHF;
+    }
+    return undefined;
+  };
 
   function handleMax() {
     setAmount(formatEther(aaveData.maxAdditionalGho));
@@ -106,8 +100,13 @@ export default function GHOBorrowForm({
     try {
       const shadowAccount = await getShadowAccount(client, account.address!);
       const ghoAmount = parseEther(amount);
-      console.log('ghoAmount', ghoAmount)
-      const bundle = await getBorrowBundle(account, shadowAccount, ghoAmount, client);
+      console.log("ghoAmount", ghoAmount);
+      const bundle = await getBorrowBundle(
+        account,
+        shadowAccount,
+        ghoAmount,
+        client
+      );
       console.log("got bundle");
       // withdraw gas for L1
       const wHash = await initWithdraw(
@@ -252,22 +251,34 @@ export default function GHOBorrowForm({
               </div>
 
               <div className="rounded-sm border border-slate-700 text-sm  px-4 py-2">
-                <div className='flex justify-between'>
-                  <div className='text-white'>Health Factor</div>
-                  <div className='flex items-center'>
-                    <span className={`${getHealthFactorColor(healthFactor)} text-xl font-bold`}>∞</span>
-                    {newHealthFactor() && (
-                      <span>{ArrowRightIcon}</span>
-                    )}
+                <div className="flex justify-between">
+                  <div className="text-white">Health Factor</div>
+                  <div className="flex items-center">
+                    
+                    <span
+                      className={`${getHealthFactorColor(
+                        healthFactor
+                      )}`}
+                    >
+                      {(!healthFactor || healthFactor >= 1_000_000) ? (
+                        <span className='text-xl font-bold'>∞</span>
+                      ) : (
+                        <span>{healthFactor.toFixed(2)}
+                          </span>
+                      )}
+                    </span>
+                    {newHealthFactor() && <span>{ArrowRightIcon}</span>}
                     {newHealthFactor && (
-                      <span className={`${getHealthFactorColor(newHealthFactor())}`}>{newHealthFactor()}</span>
-
+                      <span
+                        className={`${getHealthFactorColor(newHealthFactor())}`}
+                      >
+                        {newHealthFactor()?.toFixed(2)}
+                      </span>
                     )}
                   </div>
                 </div>
-                <div className='flex justify-end'>
-                <div className='text-[10px]'>Liquidation at {"<"}1.0</div>
-
+                <div className="flex justify-end">
+                  <div className="text-[10px]">Liquidation at {"<"}1.0</div>
                 </div>
               </div>
             </div>
@@ -287,17 +298,17 @@ export default function GHOBorrowForm({
 
             <BlueInfoBox>
               <span className="font-bold">Attention:</span> Parameter changes
-                via governance can alter your account health factor and risk of
-                liquidation. Follow the{" "}
-                <a
-                  target="_blank"
-                  href="https://governance.aave.com/"
-                  rel="noopener noreferrer"
-                  className="underline"
-                >
-                  Aave governance forum
-                </a>{" "}
-                for updates.
+              via governance can alter your account health factor and risk of
+              liquidation. Follow the{" "}
+              <a
+                target="_blank"
+                href="https://governance.aave.com/"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Aave governance forum
+              </a>{" "}
+              for updates.
             </BlueInfoBox>
 
             <button

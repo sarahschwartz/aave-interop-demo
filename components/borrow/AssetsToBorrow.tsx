@@ -1,7 +1,5 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import type { Config, UseAccountReturnType } from "wagmi";
-import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
-// import SupplyForm from "../supply/SupplyForm";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import {
   SkeletonAsset,
@@ -10,22 +8,21 @@ import {
 } from "../ui/SkeletonSupplies";
 import { tableHeaderStyle } from "@/utils/constants";
 import Tooltip from "../ui/Tooltip";
-import BorrowForm from "./BorrowForm";
 import { AaveData } from "@/utils/types";
-import { ErrorBox } from "@/components/ui/ErrorBox";
 import { formatEther } from "viem";
 import { BlueInfoBox } from "../ui/BlueInfoBox";
+import { BorrowModal } from "./BorrowModal";
 
 interface Props {
   sdk?: ViemSdk;
   client?: ViemClient;
   setUpdateCount: Dispatch<SetStateAction<number>>;
-  // updateCount: number;
-  //   ethPrice: number;
   isLoading: boolean;
   account: UseAccountReturnType<Config>;
   aaveData?: AaveData;
   healthFactor?: number;
+  showBorrowModal: boolean;
+  setShowBorrowModal: Dispatch<SetStateAction<boolean>>;
 }
 
 export default function AssetsToBorrow({
@@ -33,13 +30,12 @@ export default function AssetsToBorrow({
   sdk,
   client,
   setUpdateCount,
-  // updateCount,
   account,
   aaveData,
-  healthFactor
+  healthFactor,
+  showBorrowModal,
+  setShowBorrowModal,
 }: Props) {
-  const [showBorrowModal, setShowBorrowModal] = useState<boolean>(false);
-
   const available = aaveData
     ? parseFloat(formatEther(aaveData.maxAdditionalGho)).toLocaleString(
         undefined,
@@ -50,7 +46,10 @@ export default function AssetsToBorrow({
       )
     : "0";
 
-    const notAvailableToBorrow = !aaveData || aaveData?.totalCollateralBase <= BigInt(0) || (healthFactor && healthFactor < 1.2) as boolean;
+  const notAvailableToBorrow =
+    !aaveData ||
+    aaveData?.totalCollateralBase <= BigInt(0) ||
+    ((healthFactor && healthFactor < 1.2) as boolean);
 
   return (
     <div>
@@ -117,44 +116,16 @@ export default function AssetsToBorrow({
         </div>
       </>
 
-      <Dialog
-        open={showBorrowModal}
-        onClose={setShowBorrowModal}
-        className="relative z-10"
-      >
-        <DialogBackdrop
-          transition
-          className="fixed inset-0 bg-black/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
-        />
-
-        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <DialogPanel
-              transition
-              style={{ backgroundColor: "#292e41" }}
-              className="text-white relative transform overflow-hidden rounded-sm text-left shadow-xl outline -outline-offset-1 outline-white/10 transition-all data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in sm:my-8 w-[420px] data-closed:sm:translate-y-0 data-closed:sm:scale-95"
-            >
-              <div className="px-6 py-4">
-                {!aaveData || !aaveData.maxAdditionalGho ? (
-                  <div>
-                    <ErrorBox />
-                  </div>
-                ) : (
-                  <BorrowForm
-                    aaveData={aaveData}
-                    setShowBorrowModal={setShowBorrowModal}
-                    account={account}
-                    sdk={sdk}
-                    client={client}
-                    setUpdateCount={setUpdateCount}
-                    healthFactor={healthFactor}
-                  />
-                )}
-              </div>
-            </DialogPanel>
-          </div>
-        </div>
-      </Dialog>
+      <BorrowModal
+        showBorrowModal={showBorrowModal}
+        aaveData={aaveData}
+        setShowBorrowModal={setShowBorrowModal}
+        account={account}
+        sdk={sdk}
+        client={client}
+        setUpdateCount={setUpdateCount}
+        healthFactor={healthFactor}
+      />
     </div>
   );
 }

@@ -1,11 +1,18 @@
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
-import type { HashItem } from "./types";
-import type { Hash } from "@dutterbutter/zksync-sdk";
+import type { HashItem, ShadowAccountOp } from "./types";
+import type { Hash, Hex } from "@dutterbutter/zksync-sdk";
+import { decodeFunctionData } from "viem";
+import { CONTRACT_ADDRESSES } from "./constants";
+import I_POOL_JSON from "@/utils/abis/IPool.json";
+import L2_INTEROP_CENTER_JSON from "@/utils/abis/L2InteropCenter.json";
 
-const depositsKeyBase = 'latestAaveZKsyncDeposits-';
-const borrowsKeyBase = 'latestAaveZKsyncBorrows-';
+const depositsKeyBase = "latestAaveZKsyncDeposits-";
+const borrowsKeyBase = "latestAaveZKsyncBorrows-";
 
-export function getHashes(address: `0x${string}`): { deposits: HashItem[] | undefined, borrows: HashItem[] | undefined } {
+export function getHashes(address: `0x${string}`): {
+  deposits: HashItem[] | undefined;
+  borrows: HashItem[] | undefined;
+} {
   const depositsKey = `${depositsKeyBase}${address}`;
   const borrowsKey = `${borrowsKeyBase}${address}`;
   const rawDepositsValue = localStorage.getItem(depositsKey);
@@ -14,19 +21,19 @@ export function getHashes(address: `0x${string}`): { deposits: HashItem[] | unde
   let deposits;
   let borrows;
 
-  if (rawDepositsValue){
+  if (rawDepositsValue) {
     deposits = getParsedData(rawDepositsValue);
   }
 
-  if (rawBorrowsValue){
+  if (rawBorrowsValue) {
     borrows = getParsedData(rawBorrowsValue);
   }
- 
+
   return { deposits, borrows };
 }
 
-function getParsedData(rawValue: string){
-   const parsed = JSON.parse(rawValue) as string[];
+function getParsedData(rawValue: string) {
+  const parsed = JSON.parse(rawValue) as string[];
 
   const items = parsed.map((item) => {
     const [withdrawHash, bundleHash] = item.split(":");
@@ -36,13 +43,12 @@ function getParsedData(rawValue: string){
     };
   });
   return items;
-
 }
 
 export function storeDepositHashes(
   withdrawHash: `0x${string}`,
   bundleHash: `0x${string}`,
-  address: `0x${string}`,
+  address: `0x${string}`
 ): void {
   const key = `${depositsKeyBase}${address}`;
   storeHashes(withdrawHash, bundleHash, key);
@@ -51,7 +57,7 @@ export function storeDepositHashes(
 export function storeBorrowHashes(
   withdrawHash: `0x${string}`,
   bundleHash: `0x${string}`,
-  address: `0x${string}`,
+  address: `0x${string}`
 ): void {
   const key = `${borrowsKeyBase}${address}`;
   storeHashes(withdrawHash, bundleHash, key);
@@ -111,6 +117,7 @@ async function getSummary(
   client: ViemClient,
   storageKey: string
 ) {
+  const isBorrow = storageKey.includes(borrowsKeyBase);
   if (!items.length) {
     return {
       totalWeiFinalizing: BigInt(0),
@@ -144,7 +151,30 @@ async function getSummary(
       countFinalizing: 0,
     };
   }
+  let totalWeiFinalizing = BigInt(0);
 
+  if (isBorrow) {
+    totalWeiFinalizing = await getBorrowValueFinalizing(
+      client,
+      stillFinalizing
+    );
+  } else {
+    totalWeiFinalizing = await getDepositValueFinalizing(
+      client,
+      stillFinalizing
+    );
+  }
+
+  return {
+    totalWeiFinalizing,
+    countFinalizing: stillFinalizing.length,
+  };
+}
+
+async function getDepositValueFinalizing(
+  client: ViemClient,
+  stillFinalizing: HashItem[]
+) {
   const txResults = await Promise.allSettled(
     stillFinalizing.map((item) =>
       client.l2.getTransaction({ hash: item.withdrawHash })
@@ -159,11 +189,79 @@ async function getSummary(
       totalWeiFinalizing += raw;
     }
   }
-
-  return {
-    totalWeiFinalizing,
-    countFinalizing: stillFinalizing.length,
-  };
+  return totalWeiFinalizing;
 }
 
+async function getBorrowValueFinalizing(
+  client: ViemClient,
+  stillFinalizing: HashItem[]
+) {
+  const txResults = await Promise.allSettled(
+    stillFinalizing.map((item) =>
+      getGhoBorrowedFromTxCalldata(client, item.bundleHash)
+    )
+  );
 
+  let totalWeiFinalizing = BigInt(0);
+
+  for (const tx of txResults) {
+    if (tx.status === "fulfilled" && tx.value) {
+      const raw = tx.value ?? BigInt(0);
+      totalWeiFinalizing += raw;
+    }
+  }
+  return totalWeiFinalizing;
+}
+
+export async function getGhoBorrowedFromTxCalldata(
+  client: ViemClient,
+  hash: Hex
+) {
+  const tx = await client.l2.getTransaction({ hash }); // or client.getTransaction
+  if (!tx.input) throw new Error("Missing tx input");
+
+  // 1. Decode the sendBundleToL1 call
+  const decodedBundle = decodeFunctionData({
+    abi: L2_INTEROP_CENTER_JSON.abi,
+    data: tx.input,
+  });
+
+  if (decodedBundle.functionName !== "sendBundleToL1") {
+    throw new Error("Not a sendBundleToL1 transaction");
+  }
+
+  if (!decodedBundle.args || !Array.isArray(decodedBundle.args)) {
+    console.log("decode bundle wrong", decodedBundle);
+    return;
+  }
+
+  const ops = decodedBundle.args[0] as ShadowAccountOp[];
+
+  // 2. Find the Aave borrow op
+  const borrowOp = ops.find(
+    (op) =>
+      op.target.toLowerCase() === CONTRACT_ADDRESSES.aavePool.toLowerCase()
+  );
+  if (!borrowOp) throw new Error("No borrow op found in bundle");
+
+  // 3. Decode the inner IPool.borrow call
+  const decodedBorrow = decodeFunctionData({
+    abi: I_POOL_JSON.abi,
+    data: borrowOp.data,
+  });
+
+  if (decodedBorrow.functionName !== "borrow") {
+    throw new Error("Inner call is not IPool.borrow");
+  }
+
+  // borrow(ghoTokenAddress, ghoAmount, 2, 0, shadowAccount)
+  const [, ghoAmount] = decodedBorrow.args as [
+    `0x${string}`,
+    bigint,
+    bigint,
+    bigint,
+    `0x${string}`
+  ];
+
+  return ghoAmount;
+}

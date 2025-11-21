@@ -50,7 +50,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
-  const [ghoBorrowed, setGhoBorrowed] = useState<string>();
+  const [ghoBorrowed, setGhoBorrowed] = useState<string>('0.00');
   const [healthFactor, setHealthFactor] = useState<number>();
   const [aaveData, setAaveData] = useState<AaveData>();
   const [ethPrice, setEthPrice] = useState<number>();
@@ -145,7 +145,6 @@ export default function Home() {
 
       const shadowAccount = await getShadowAccount(client, account.address);
       const data = await getShadowAccountData(client, shadowAccount);
-      console.log('aave data:', data)
       setAaveData(data);
 
       if(!data){
@@ -161,8 +160,15 @@ export default function Home() {
 
       const hashes = getHashes(account.address!);
 
-      if(!hashes.borrows){
-        setGhoBorrowed(formatEther(data.totalDebtBase));
+      if(!hashes.borrows || hashes.borrows.length === 0){
+          const borrowed = aaveData && aaveData.totalDebtBase ?  parseFloat((aaveData.totalDebtBase / BigInt(100_000_000)).toString()).toLocaleString(
+        undefined,
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }
+      ) : "0.00";
+        setGhoBorrowed(borrowed);
       } else {
          const borrowSummary = await getAaveBorrowsSummary(
           sdk,
@@ -171,13 +177,20 @@ export default function Home() {
           client
         );
 
-        console.log('finalizing borrow amount:', borrowSummary.totalWeiFinalizing)
-        setGhoBorrowed(formatEther(borrowSummary.totalWeiFinalizing + data.totalDebtBase));
+        const finalizingAmount = borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
+        const borrowed = aaveData && aaveData.totalDebtBase ?  parseFloat(((aaveData.totalDebtBase + finalizingAmount) / BigInt(100_000_000)).toString()).toLocaleString(
+        undefined,
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }
+      ) : "0.00";
+        setGhoBorrowed(borrowed);
         setFinalizingBorrows(borrowSummary.countFinalizing);
         
       }
       
-      if (!hashes.deposits) {
+      if (!hashes.deposits || hashes.deposits.length === 0) {
         setEthBalance(formatEther(aTokenBalance.value));
       } else {
       const depositSummary = await getAaveDepositSummary(
@@ -193,7 +206,6 @@ export default function Home() {
 
       if(data.totalDebtBase > BigInt(0)){
         const hf = computeCurrentHealthFactor(data)
-        console.log('current health factor:', hf)
         setHealthFactor(hf)
       } else if (data.totalCollateralBase > BigInt(0)){
         setHealthFactor(1_000_000_000)
@@ -230,8 +242,9 @@ export default function Home() {
           <>
             {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
-                <Stats isLoading={isLoading} usdValue={usdValue} />
+                <Stats isLoading={isLoading} usdValue={usdValue} healthFactor={healthFactor} />
                 <SupplyAndBorrow
+                  finalizingBorrows={finalizingBorrows}
                   sdk={sdk}
                   client={client}
                   isLoading={isLoading}
@@ -244,6 +257,7 @@ export default function Home() {
                   account={account}
                   aaveData={aaveData}
                   healthFactor={healthFactor}
+                  ghoBorrowed={ghoBorrowed}
                 />
               </div>
             ) : (

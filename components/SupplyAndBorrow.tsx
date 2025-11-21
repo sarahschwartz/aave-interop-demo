@@ -8,12 +8,14 @@ import { SuppliedAssets } from "./supply/SuppliedAssets";
 import { UseAccountReturnType, Config } from "wagmi";
 import AssetsToBorrow from "./borrow/AssetsToBorrow";
 import { AaveData } from "@/utils/types";
+import { BorrowedAssets } from "./borrow/BorrowedAssets";
 
 interface Props {
   sdk?: ViemSdk;
   client?: ViemClient;
   isLoading: boolean;
   finalizingDeposits: number;
+  finalizingBorrows: number;
   ethBalance: string;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   updateCount: number;
@@ -22,6 +24,7 @@ interface Props {
   account: UseAccountReturnType<Config>;
   aaveData?: AaveData;
   healthFactor?: number;
+  ghoBorrowed: string;
 }
 
 export default function SupplyAndBorrow({
@@ -29,6 +32,7 @@ export default function SupplyAndBorrow({
   client,
   isLoading,
   finalizingDeposits,
+  finalizingBorrows,
   ethBalance,
   setUpdateCount,
   updateCount,
@@ -36,7 +40,8 @@ export default function SupplyAndBorrow({
   usdValue,
   account,
   aaveData,
-  healthFactor
+  healthFactor,
+  ghoBorrowed
 }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const [assetsToSupplyCollapsed, setAssetsToSupplyCollapsed] =
@@ -47,6 +52,8 @@ export default function SupplyAndBorrow({
     useState<boolean>(false);
   const [borrowedAssetsCollapsed, setBorrowedAssetsCollapsed] =
     useState<boolean>(false);
+  const [showBorrowModal, setShowBorrowModal] = useState<boolean>(false);
+
   const { breakpoints } = useTheme();
   const isDesktop = useMediaQuery(breakpoints.up(1260));
 
@@ -195,9 +202,19 @@ export default function SupplyAndBorrow({
               </Box>
             </div>
             {!assetsToBorrowCollapsed && (
-              <div className="text-gray-400 text-sm mt-10">
-                Nothing borrowed yet
-              </div>
+              <BorrowedAssets
+                finalizingBorrows={finalizingBorrows}
+                sdk={sdk}
+                client={client}
+                setUpdateCount={setUpdateCount}
+                isLoading={isLoading}
+                account={account}
+                aaveData={aaveData}
+                healthFactor={healthFactor}
+                showBorrowModal={showBorrowModal}
+                setShowBorrowModal={setShowBorrowModal}
+                ghoBorrowed={ghoBorrowed}
+              />
             )}
           </div>
           <div
@@ -225,6 +242,8 @@ export default function SupplyAndBorrow({
                 account={account}
                 aaveData={aaveData}
                 healthFactor={healthFactor}
+                showBorrowModal={showBorrowModal}
+                setShowBorrowModal={setShowBorrowModal}
               />
             )}
           </div>

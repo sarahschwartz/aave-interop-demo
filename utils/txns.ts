@@ -78,29 +78,19 @@ export async function getBorrowBundle(
     args: [CONTRACT_ADDRESSES.l1NativeTokenVaultAddress, ghoAmount],
   });
 
-  // const gasPrice = await client.l1.getGasPrice();
+  const gasPrice = await client.l1.getGasPrice();
   const l2GasLimit = BigInt(5_000_000);
   const l2GasPerPubdataByteLimit = BigInt(800);
 
-  // const baseCost = await client.l1.readContract({
-  //   address: CONTRACT_ADDRESSES.chainMailBoxAddress,
-  //   abi: I_MAILBOX_IMPL_JSON.abi as Abi,
-  //   functionName: "l2TransactionBaseCost",
-  //   args: [gasPrice, l2GasLimit, l2GasPerPubdataByteLimit],
-  // });
-  // console.log("baseCost:", baseCost);
+  const baseCost = await client.l1.readContract({
+    address: CONTRACT_ADDRESSES.chainMailBoxAddress,
+    abi: I_MAILBOX_IMPL_JSON.abi as Abi,
+    functionName: "l2TransactionBaseCost",
+    args: [gasPrice, l2GasLimit, l2GasPerPubdataByteLimit],
+  });
 
-  // const mintValue =
-  //   typeof baseCost === "bigint" ? baseCost : BigInt(5_000_000_000_000_000);
-    
-  const mintValue = BigInt(5_000_000_000_000_000);
-
-  // console.log(
-  //   "base cost is bigger?",
-  //   typeof baseCost === "bigint"
-  //     ? baseCost > BigInt(5_000_000_000_000_000)
-  //     : undefined
-  // );
+  const mintValue =
+    typeof baseCost === "bigint" ? baseCost + BigInt(1_000_000) : BigInt(5_000_000_000_000_000);
 
   const ghoTokenAssetId = DataEncoding.encodeNTVAssetId(
     BigInt(sepolia.id),

@@ -1,4 +1,4 @@
-import { CONTRACT_ADDRESSES } from "./constants";
+import { CONTRACT_ADDRESSES, GREEN_TEXT } from "./constants";
 import I_POOL_JSON from "@/utils/abis/IPool.json";
 import { type Abi } from "viem";
 import { ViemClient } from "@dutterbutter/zksync-sdk/viem";
@@ -64,22 +64,6 @@ export const getShadowAccountData = async (
       healthFactor: accountData[5],
     };
 
-    if (totalDebtBase > BigInt(0)) {
-      const currentHF = computeCurrentHealthFactor(shadowAccountData);
-      console.log("currentHF", currentHF);
-
-      const inputDollars = 5;
-      const additionalGho =
-        BigInt(Math.round(inputDollars * 1e2)) *
-        BigInt(10) ** (BigInt(18) - BigInt(2));
-
-      const projectedHF = computeProjectedHealthFactorAfterGhoBorrow(
-        shadowAccountData,
-        additionalGho
-      );
-      console.log("projected HF:", projectedHF);
-    }
-
     return shadowAccountData;
   }
 };
@@ -107,14 +91,14 @@ function formatAaveETHUSD(price: bigint): number {
   return parseFloat(`${dollars}.${decimal.slice(0, 2)}`);
 }
 
-export async function getFormattedETHUSD(client: ViemClient){
+export async function getFormattedETHUSD(client: ViemClient) {
   const price = await getAaveEthPriceOnSepolia(client);
-      if(price){
-        const formatted = formatAaveETHUSD(price);
-        return formatted;
-      } else {
-        return 4000.00;
-      }
+  if (price) {
+    const formatted = formatAaveETHUSD(price);
+    return formatted;
+  } else {
+    return 4000.0;
+  }
 }
 
 export function computeCurrentHealthFactor(data: AaveData): number {
@@ -164,3 +148,13 @@ export function computeProjectedHealthFactorAfterGhoBorrow(
 
   return Number(hfScaled) / Number(SCALE);
 }
+
+export const getHealthFactorColor = (hf: number | undefined) => {
+  if (!hf || hf >= 3) {
+    return GREEN_TEXT;
+  } else if (hf < 1.1) {
+    return "text-[#F44336]";
+  } else {
+    return "text-[#FFA726]";
+  }
+};

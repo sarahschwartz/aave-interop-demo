@@ -17,6 +17,8 @@ const aaveOracle: `0x${string}` = "0x2da88497588bf89281816106C7259e31AF45a663";
 const aavePool: `0x${string}` = "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951";
 const ghoTokenAddress: `0x${string}` =
   "0xc4bF5CbDaBE595361438F8c6a187bDc330539c60";
+const l2GhoToken: `0x${string}` =
+  "0xcA9EBBd747D02f57d523eCaA8f9dFC4E7e4C428D";
 const l1NativeTokenVaultAddress: `0x${string}` =
   "0xF8d4A5195737043f45F998539D5C62Eee02E3426";
 const bridgehubAddress: `0x${string}` =
@@ -34,6 +36,7 @@ export const CONTRACT_ADDRESSES = {
   aavePool,
   aaveOracle,
   ghoTokenAddress,
+  l2GhoToken,
   l1NativeTokenVaultAddress,
   bridgehubAddress,
   l1AssetRouterAddress,

@@ -22,19 +22,18 @@ export default function BorrowSuccessForm({
   async function addGHOTokenToWallet(){
   if (!walletClient) return
 
-    // TODO: add l2GhoToken
-    // await walletClient.request({
-    //   method: 'wallet_watchAsset',
-    //   params: {
-    //     type: 'ERC20',
-    //     options: {
-    //       address: CONTRACT_ADDRESSES.l2GhoToken,
-    //       symbol: 'GHO',
-    //       decimals: 18,
-    //       image: 'https://app.aave.com/icons/tokens/gho.svg',
-    //     },
-    //   },
-    // })
+    await walletClient.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: {
+          address: CONTRACT_ADDRESSES.l2GhoToken,
+          symbol: 'GHO',
+          decimals: 18,
+          image: 'https://app.aave.com/icons/tokens/gho.svg',
+        },
+      },
+    })
   }
 
   return (
