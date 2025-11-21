@@ -89,8 +89,10 @@ export async function getBorrowBundle(
     args: [gasPrice, l2GasLimit, l2GasPerPubdataByteLimit],
   });
 
+  console.log('basecost:', baseCost)
+
   const mintValue =
-    typeof baseCost === "bigint" ? baseCost + BigInt(1_000_000) : BigInt(5_000_000_000_000_000);
+    typeof baseCost === "bigint" ? baseCost + BigInt(1_000) : BigInt(5_000_000_000_000_000);
 
   const ghoTokenAssetId = DataEncoding.encodeNTVAssetId(
     BigInt(sepolia.id),

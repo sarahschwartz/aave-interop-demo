@@ -25,16 +25,18 @@ import { sepolia } from "viem/chains";
 import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
 import { SvgIcon } from "@mui/material";
 import { InformationCircleIcon } from "@heroicons/react/outline";
-import {
-  getShadowAccount,
-} from "@/utils/txns";
+import { getShadowAccount } from "@/utils/txns";
 import {
   getAaveBorrowsSummary,
   getAaveDepositSummary,
   getHashes,
 } from "@/utils/storage";
 import { getBalance } from "@wagmi/core";
-import { computeCurrentHealthFactor, getFormattedETHUSD, getShadowAccountData } from "@/utils/aave";
+import {
+  computeCurrentHealthFactor,
+  getFormattedETHUSD,
+  getShadowAccountData,
+} from "@/utils/aave";
 import { AaveData } from "@/utils/types";
 import { CONTRACT_ADDRESSES } from "@/utils/constants";
 
@@ -50,7 +52,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
-  const [ghoBorrowed, setGhoBorrowed] = useState<string>('0.00');
+  const [ghoBorrowed, setGhoBorrowed] = useState<string>("0.00");
   const [healthFactor, setHealthFactor] = useState<number>();
   const [aaveData, setAaveData] = useState<AaveData>();
   const [ethPrice, setEthPrice] = useState<number>();
@@ -137,79 +139,90 @@ export default function Home() {
 
   useEffect(() => {
     async function checkStatus() {
-      if (!hasMounted || !sdk || !account || !account.address || !client) return;
+      if (!hasMounted || !sdk || !account || !account.address || !client)
+        return;
       setIsLoading(true);
       try {
-      const price = await getFormattedETHUSD(client);
-      setEthPrice(price);
+        const price = await getFormattedETHUSD(client);
+        setEthPrice(price);
 
-      const shadowAccount = await getShadowAccount(client, account.address);
-      const data = await getShadowAccountData(client, shadowAccount);
-      setAaveData(data);
+        const shadowAccount = await getShadowAccount(client, account.address);
+        const data = await getShadowAccountData(client, shadowAccount);
+        setAaveData(data);
 
-      if(!data){
-        console.log("aave data missing");
-        return;
-      }
-
-      const aTokenBalance = await getBalance(config, {
-        address: shadowAccount,
-        chainId: sepolia.id,
-        token: CONTRACT_ADDRESSES.aToken,
-      });
-
-      const hashes = getHashes(account.address!);
-
-      if(!hashes.borrows || hashes.borrows.length === 0){
-          const borrowed = aaveData && aaveData.totalDebtBase ?  parseFloat((aaveData.totalDebtBase / BigInt(100_000_000)).toString()).toLocaleString(
-        undefined,
-        {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
+        if (!data) {
+          console.log("aave data missing");
+          return;
         }
-      ) : "0.00";
-        setGhoBorrowed(borrowed);
-      } else {
-         const borrowSummary = await getAaveBorrowsSummary(
-          sdk,
-          account.address!,
-          hashes.borrows,
-          client
-        );
 
-        const finalizingAmount = borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
-        const borrowed = aaveData && aaveData.totalDebtBase ?  parseFloat(((aaveData.totalDebtBase + finalizingAmount) / BigInt(100_000_000)).toString()).toLocaleString(
-        undefined,
-        {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
+        const aTokenBalance = await getBalance(config, {
+          address: shadowAccount,
+          chainId: sepolia.id,
+          token: CONTRACT_ADDRESSES.aToken,
+        });
+
+        const hashes = getHashes(account.address!);
+
+        if (!hashes.borrows || hashes.borrows.length === 0) {
+          const borrowed =
+            aaveData && aaveData.totalDebtBase
+              ? parseFloat(
+                  (aaveData.totalDebtBase / BigInt(100_000_000)).toString()
+                ).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
+              : "0.00";
+              console.log("borrowed", borrowed)
+          setGhoBorrowed(borrowed);
+        } else {
+          const borrowSummary = await getAaveBorrowsSummary(
+            sdk,
+            account.address!,
+            hashes.borrows,
+            client
+          );
+
+          const finalizingAmount =
+            borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
+          const borrowed =
+            aaveData && aaveData.totalDebtBase
+              ? parseFloat(
+                  (
+                    (aaveData.totalDebtBase + finalizingAmount) /
+                    BigInt(100_000_000)
+                  ).toString()
+                ).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })
+              : "0.00";
+          setGhoBorrowed(borrowed);
+          setFinalizingBorrows(borrowSummary.countFinalizing);
         }
-      ) : "0.00";
-        setGhoBorrowed(borrowed);
-        setFinalizingBorrows(borrowSummary.countFinalizing);
-        
-      }
-      
-      if (!hashes.deposits || hashes.deposits.length === 0) {
-        setEthBalance(formatEther(aTokenBalance.value));
-      } else {
-      const depositSummary = await getAaveDepositSummary(
-          sdk,
-          account.address!,
-          hashes.deposits,
-          client
-        );
 
-        setEthBalance(formatEther(depositSummary.totalWeiFinalizing + aTokenBalance.value));
-        setFinalizingDeposits(depositSummary.countFinalizing);
-      }
+        if (!hashes.deposits || hashes.deposits.length === 0) {
+          setEthBalance(formatEther(aTokenBalance.value));
+        } else {
+          const depositSummary = await getAaveDepositSummary(
+            sdk,
+            account.address!,
+            hashes.deposits,
+            client
+          );
 
-      if(data.totalDebtBase > BigInt(0)){
-        const hf = computeCurrentHealthFactor(data)
-        setHealthFactor(hf)
-      } else if (data.totalCollateralBase > BigInt(0)){
-        setHealthFactor(1_000_000_000)
-      }
+          setEthBalance(
+            formatEther(depositSummary.totalWeiFinalizing + aTokenBalance.value)
+          );
+          setFinalizingDeposits(depositSummary.countFinalizing);
+        }
+
+        if (data.totalDebtBase > BigInt(0)) {
+          const hf = computeCurrentHealthFactor(data);
+          setHealthFactor(hf);
+        } else if (data.totalCollateralBase > BigInt(0)) {
+          setHealthFactor(1_000_000_000);
+        }
       } catch (e) {
         console.log("ERROR:", e);
       } finally {
@@ -242,7 +255,11 @@ export default function Home() {
           <>
             {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
-                <Stats isLoading={isLoading} usdValue={usdValue} healthFactor={healthFactor} />
+                <Stats
+                  isLoading={isLoading}
+                  usdValue={usdValue}
+                  healthFactor={healthFactor}
+                />
                 <SupplyAndBorrow
                   finalizingBorrows={finalizingBorrows}
                   sdk={sdk}

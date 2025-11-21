@@ -44,6 +44,13 @@ export function BorrowedAssets({
     finalizingBorrows === 1 ? "borrow" : "borrows"
   } still finalizing. This usually takes ~5 minutes.`;
 
+const borrowPowerUsed =
+  aaveData
+    ? Number(aaveData.totalDebtBase) / Number(aaveData.userBorrowCapBase) * 100
+    : 0;
+
+    console.log("borrowPowerUsed", borrowPowerUsed)
+
   return (
     <div>
       {!isLoading && (parseFloat(ghoBorrowed) == 0) ? (
@@ -63,7 +70,7 @@ export function BorrowedAssets({
               </div>
               <div className={statsStyles + " flex items-center gap-1"}>
                 <span>
-                  Borrow power used <span className="text-white">20</span> %
+                  Borrow power used <span className="text-white">{borrowPowerUsed.toFixed(1)}</span> %
                 </span>{" "}
                 <Tooltip text="The total amount of your assets denominated in USD that can be used as collateral for borrowing assets." />
               </div>
