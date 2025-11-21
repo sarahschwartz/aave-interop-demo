@@ -2,10 +2,12 @@ import StyledToggleGroup from "@/components/ui/StyledToggleGroup";
 import StyledToggleButton from "@/components/ui/StyledToggleButton";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { Dispatch, SetStateAction, useState } from "react";
-import AssetsToSupply from "./AssetsToSupply";
+import AssetsToSupply from "./supply/AssetsToSupply";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
-import { SuppliedAssets } from "./SuppliedAssets";
+import { SuppliedAssets } from "./supply/SuppliedAssets";
 import { UseAccountReturnType, Config } from "wagmi";
+import AssetsToBorrow from "./borrow/AssetsToBorrow";
+import { AaveData } from "@/utils/types";
 
 interface Props {
   sdk?: ViemSdk;
@@ -18,6 +20,8 @@ interface Props {
   ethPrice: number;
   usdValue: number;
   account: UseAccountReturnType<Config>;
+  aaveData?: AaveData;
+  healthFactor?: number;
 }
 
 export default function SupplyAndBorrow({
@@ -30,12 +34,18 @@ export default function SupplyAndBorrow({
   updateCount,
   ethPrice,
   usdValue,
-  account
+  account,
+  aaveData,
+  healthFactor
 }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const [assetsToSupplyCollapsed, setAssetsToSupplyCollapsed] =
     useState<boolean>(false);
   const [suppliedAssetsCollapsed, setSuppliedAssetsCollapsed] =
+    useState<boolean>(false);
+  const [assetsToBorrowCollapsed, setAssetsToBorrowCollapsed] =
+    useState<boolean>(false);
+  const [borrowedAssetsCollapsed, setBorrowedAssetsCollapsed] =
     useState<boolean>(false);
   const { breakpoints } = useTheme();
   const isDesktop = useMediaQuery(breakpoints.up(1260));
@@ -47,8 +57,8 @@ export default function SupplyAndBorrow({
       cursor: "pointer",
       minHeight: "28px",
       pl: 3,
-      fontSize: '14px',
-      color: '#a5a8b6',
+      fontSize: "14px",
+      color: "#a5a8b6",
       span: {
         width: "14px",
         height: "2px",
@@ -106,19 +116,19 @@ export default function SupplyAndBorrow({
             className="w-full p-6 border border-gray-700 rounded-sm"
             style={{ backgroundColor: "var(--container)" }}
           >
-            <div className='flex justify-between'>
-            <h3 className="font-bold text-lg">Your supplies</h3>
-            {ethBalance && (
-            <Box
-              sx={() => collapseStyles(suppliedAssetsCollapsed)}
-              onClick={() =>
-                setSuppliedAssetsCollapsed(!suppliedAssetsCollapsed)
-              }
-            >
-              {suppliedAssetsCollapsed ? <div>Show</div> : <div>Hide</div>}
-              <span />
-            </Box>
-            )}
+            <div className="flex justify-between">
+              <h3 className="font-bold text-lg">Your supplies</h3>
+              {ethBalance && (
+                <Box
+                  sx={() => collapseStyles(suppliedAssetsCollapsed)}
+                  onClick={() =>
+                    setSuppliedAssetsCollapsed(!suppliedAssetsCollapsed)
+                  }
+                >
+                  {suppliedAssetsCollapsed ? <div>Show</div> : <div>Hide</div>}
+                  <span />
+                </Box>
+              )}
             </div>
             {!suppliedAssetsCollapsed && (
               <SuppliedAssets
@@ -134,17 +144,17 @@ export default function SupplyAndBorrow({
             className="w-full p-6 border border-gray-700 rounded-sm"
             style={{ backgroundColor: "var(--container)" }}
           >
-            <div className='flex justify-between'>
-            <h3 className="font-bold text-lg">Assets to supply</h3>
-            <Box
-              sx={() => collapseStyles(assetsToSupplyCollapsed)}
-              onClick={() =>
-                setAssetsToSupplyCollapsed(!assetsToSupplyCollapsed)
-              }
-            >
-              {assetsToSupplyCollapsed ? <div>Show</div> : <div>Hide</div>}
-              <span />
-            </Box>
+            <div className="flex justify-between">
+              <h3 className="font-bold text-lg">Assets to supply</h3>
+              <Box
+                sx={() => collapseStyles(assetsToSupplyCollapsed)}
+                onClick={() =>
+                  setAssetsToSupplyCollapsed(!assetsToSupplyCollapsed)
+                }
+              >
+                {assetsToSupplyCollapsed ? <div>Show</div> : <div>Hide</div>}
+                <span />
+              </Box>
             </div>
             {!assetsToSupplyCollapsed && (
               <AssetsToSupply
@@ -172,19 +182,51 @@ export default function SupplyAndBorrow({
             className="p-6 border border-gray-700 rounded-sm"
             style={{ backgroundColor: "var(--container)" }}
           >
-            <h3 className="font-bold text-lg">Assets to borrow</h3>
-            <div className="text-gray-400 text-sm mt-10">
-              Nothing borrowed yet
+            <div className="flex justify-between">
+              <h3 className="font-bold text-lg">Assets to borrow</h3>
+              <Box
+                sx={() => collapseStyles(assetsToBorrowCollapsed)}
+                onClick={() =>
+                  setAssetsToBorrowCollapsed(!assetsToBorrowCollapsed)
+                }
+              >
+                {assetsToBorrowCollapsed ? <div>Show</div> : <div>Hide</div>}
+                <span />
+              </Box>
             </div>
+            {!assetsToBorrowCollapsed && (
+              <div className="text-gray-400 text-sm mt-10">
+                Nothing borrowed yet
+              </div>
+            )}
           </div>
           <div
             className="p-6 border border-gray-700 rounded-sm"
             style={{ backgroundColor: "var(--container)" }}
           >
-            <h3 className="font-bold text-lg">Your borrows</h3>
-            <div className="text-gray-400 text-sm mt-10">
-              Nothing to borrow yet
+            <div className="flex justify-between">
+              <h3 className="font-bold text-lg">Your borrows</h3>
+              <Box
+                sx={() => collapseStyles(borrowedAssetsCollapsed)}
+                onClick={() =>
+                  setBorrowedAssetsCollapsed(!borrowedAssetsCollapsed)
+                }
+              >
+                {borrowedAssetsCollapsed ? <div>Show</div> : <div>Hide</div>}
+                <span />
+              </Box>
             </div>
+            {!borrowedAssetsCollapsed && (
+              <AssetsToBorrow
+                sdk={sdk}
+                client={client}
+                setUpdateCount={setUpdateCount}
+                isLoading={isLoading}
+                account={account}
+                aaveData={aaveData}
+                healthFactor={healthFactor}
+              />
+            )}
           </div>
         </div>
       </div>

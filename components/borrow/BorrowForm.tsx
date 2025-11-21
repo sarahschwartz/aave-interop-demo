@@ -1,47 +1,49 @@
-import { getBundle, getShadowAccount, initWithdraw, sendHashesForFinalization, storeHashes } from "@/utils/withdraw";
+import { sendHashesForFinalization } from "@/utils/helpers";
+import { getBorrowBundle, getShadowAccount, initWithdraw } from "@/utils/txns";
+import { storeBorrowHashes } from "@/utils/storage";
 import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
-import React, {
-  Dispatch,
-  SetStateAction,
-  useMemo,
-  useState,
-} from "react";
-import {
-  UseAccountReturnType,
-  type Config,
-} from "wagmi";
-import SupplySuccessForm from "./SupplySuccessForm";
-import Spinner from "./ui/Spinner";
+import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
+import { UseAccountReturnType, type Config } from "wagmi";
+import Spinner from "../ui/Spinner";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
-import Tooltip from "./ui/Tooltip";
-import { parseEther } from "viem";
-import { writeContract } from '@wagmi/core'
+import Tooltip from "../ui/Tooltip";
+import { formatEther, parseEther } from "viem";
+import { writeContract } from "@wagmi/core";
 import { config } from "@/utils/wagmi";
+import { ErrorBox } from "@/components/ui/ErrorBox";
+import BorrowSuccessForm from "./BorrowSuccessForm";
+import { BlueInfoBox } from "../ui/BlueInfoBox";
+import { GREEN_TEXT } from "@/utils/constants";
+import { ArrowNarrowRightIcon } from '@heroicons/react/solid';
+import { SvgIcon } from '@mui/material';
+import { computeProjectedHealthFactorAfterGhoBorrow } from "@/utils/aave";
+import type { AaveData } from "@/utils/types";
 
 type Props = {
-  setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
+  setShowBorrowModal: Dispatch<SetStateAction<boolean>>;
   setUpdateCount: Dispatch<SetStateAction<number>>;
   sdk?: ViemSdk;
   client?: ViemClient;
   account: UseAccountReturnType<Config>;
-  balance: number | bigint;
-  ethPrice: number;
+  aaveData: AaveData;
+  healthFactor?: number;
 };
 
-const Error = () => (
-  <div className="text-center p-4 bg-red-500 opacity-75 rounded-sm">
-    oops, something went wrong
-  </div>
+const ArrowRightIcon = (
+  <SvgIcon sx={{ fontSize: '14px', mx: 1, color: 'white' }}>
+    <ArrowNarrowRightIcon />
+  </SvgIcon>
 );
 
-export default function EthSupplyForm({
-  setShowSupplyModal,
+
+export default function GHOBorrowForm({
+  setShowBorrowModal,
   setUpdateCount,
   sdk,
   client,
   account,
-  balance,
-  ethPrice,
+  aaveData,
+  healthFactor
 }: Props) {
   const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
@@ -55,37 +57,73 @@ export default function EthSupplyForm({
     [amount]
   );
 
-  const usdValue = useMemo(
-    () => Math.round(amountNumber * ethPrice * 100) / 100,
-    [amountNumber, ethPrice]
-  );
-
   const amountIsGreaterThanZero = amount && parseFloat(amount) > 0;
 
+  const maxFormatted = parseFloat(formatEther(aaveData.maxAdditionalGho)).toLocaleString(
+        undefined,
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }
+      );
+
+      const getHealthFactorColor = (hf: number | undefined) => {
+        if(!hf || hf >= 3){
+        return GREEN_TEXT;
+        } else if (hf < 1.1) {
+          return 'text-[#F44336]'
+        } else {
+          return 'text-[#FFA726]'
+        }
+      }
+
+      const newHealthFactor = () => {
+        if(amount && parseFloat(amount) > 0){
+          const newHF = computeProjectedHealthFactorAfterGhoBorrow(aaveData, parseEther(amount));
+          return newHF;
+        }
+        return undefined;
+      } 
+
   function handleMax() {
-    setAmount(balance.toString());
+    setAmount(formatEther(aaveData.maxAdditionalGho));
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !sdk || !account || !client) {
-      console.log("missing amount, sdk, account, or client");
+      console.log(
+        "missing amount, sdk, account, or client",
+        amount,
+        sdk,
+        account,
+        client
+      );
       return;
     }
     setIsPending(true);
 
     try {
-      const shadowAccount = await getShadowAccount(client, account);
-      const wei = parseEther(amount);
-      const wHash = await initWithdraw(account, wei, sdk, shadowAccount);
-      const bundle = await getBundle(shadowAccount, wei);
-      const bHash= await writeContract(config, bundle)
-     
+      const shadowAccount = await getShadowAccount(client, account.address!);
+      const ghoAmount = parseEther(amount);
+      console.log('ghoAmount', ghoAmount)
+      const bundle = await getBorrowBundle(account, shadowAccount, ghoAmount, client);
+      console.log("got bundle");
+      // withdraw gas for L1
+      const wHash = await initWithdraw(
+        account,
+        bundle.l1GasNeeded,
+        sdk,
+        shadowAccount
+      );
+      // sign borrow bundle
+      const bHash = await writeContract(config, bundle.bundle);
+
       if (!wHash || !bHash) {
         setIsError(true);
       } else {
         await sendHashesForFinalization(wHash, bHash);
-        storeHashes(wHash, bHash, account.address!);
+        storeBorrowHashes(wHash, bHash, account.address!);
         setHashes([wHash, bHash]);
         setIsSuccess(true);
         setUpdateCount((prev) => prev + 1);
@@ -102,7 +140,9 @@ export default function EthSupplyForm({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function handleChange(e: any) {
     const value =
-      e.target.value > balance ? balance.toString() : e.target.value;
+      e.target.value > parseFloat(formatEther(aaveData.maxAdditionalGho))
+        ? formatEther(aaveData.maxAdditionalGho)
+        : e.target.value;
     setAmount(value);
     //
     //   if(!sdk) return;
@@ -114,15 +154,15 @@ export default function EthSupplyForm({
 
   return (
     <>
-      {isError && <Error />}
+      {isError && <ErrorBox />}
       {isSuccess ? (
         <>
           {!hashes ? (
-            <Error />
+            <ErrorBox />
           ) : (
-            <SupplySuccessForm
+            <BorrowSuccessForm
               amount={amount}
-              setShowSupplyModal={setShowSupplyModal}
+              setShowSupplyModal={setShowBorrowModal}
               hashes={hashes}
             />
           )}
@@ -130,23 +170,20 @@ export default function EthSupplyForm({
       ) : (
         <div>
           <div className="flex mb-4 align-bottom justify-between">
-            <div className="text-[22px] font-bold mt-3">Supply ETH</div>
+            <div className="text-[22px] font-bold mt-3">Borrow GHO</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/x.svg"
               alt="exit-form"
               className="cursor-pointer h-12 w-12"
               draggable={false}
-              onClick={() => setShowSupplyModal(false)}
+              onClick={() => setShowBorrowModal(false)}
             />
           </div>
           <form onSubmit={handleSubmit} className="rounded-2xl text-slate-100">
             <div className="mb-2 flex items-center gap-2 text-slate-400">
               <span className="text-sm font-medium">Amount</span>
-              <Tooltip
-                text="This is the total amount that you are able to supply to in this reserve. You are able to
-        supply your wallet balance up until the supply cap is reached."
-              />
+              <Tooltip text="This is the total amount available for you to borrow. You can borrow based on your collateral and until the borrow cap is reached." />
             </div>
 
             <div className="rounded-sm border border-slate-700">
@@ -157,7 +194,7 @@ export default function EthSupplyForm({
                   onChange={handleChange}
                   className="w-full bg-transparent text-xl tracking-tight outline-none placeholder:text-slate-500"
                   placeholder="0.00"
-                  aria-label="Amount in ETH"
+                  aria-label="Amount in GHO"
                 />
 
                 <div className="flex items-center gap-2 rounded-lg px-3">
@@ -175,26 +212,28 @@ export default function EthSupplyForm({
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/eth.svg"
-                    alt="Ethereum"
+                    src="/gho.svg"
+                    alt="GHO"
                     className="h-6 w-6"
                     draggable={false}
                   />
-                  <span className="text-md font-semibold mr-6">ETH</span>
+                  <span className="text-md font-semibold mr-2">GHO</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-between px-4 pb-1 text-sm">
                 <span className="text-slate-400">
                   ${" "}
-                  {usdValue.toLocaleString(undefined, {
+                  {/* {amountNumber.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })}
+                  })} */}
+                  {amountNumber}
                 </span>
 
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400">
-                    Wallet balance {balance.toString().slice(0, 8)}
+                    Available {maxFormatted}
                   </span>
                   <button
                     type="button"
@@ -212,17 +251,23 @@ export default function EthSupplyForm({
                 Transaction overview
               </div>
 
-              <div className="rounded-sm border border-slate-700 text-sm">
-                <div className="flex items-center justify-between px-4 py-1">
-                  <span className="text-slate-200">Supply APY</span>
-                  <span className="text-slate-200">
-                    <span className="font-semibold mr-1 text-base">0</span>%
-                  </span>
-                </div>
+              <div className="rounded-sm border border-slate-700 text-sm  px-4 py-2">
+                <div className='flex justify-between'>
+                  <div className='text-white'>Health Factor</div>
+                  <div className='flex items-center'>
+                    <span className={`${getHealthFactorColor(healthFactor)} text-xl font-bold`}>∞</span>
+                    {newHealthFactor() && (
+                      <span>{ArrowRightIcon}</span>
+                    )}
+                    {newHealthFactor && (
+                      <span className={`${getHealthFactorColor(newHealthFactor())}`}>{newHealthFactor()}</span>
 
-                <div className=" flex items-center justify-between px-4 py-1">
-                  <span className="text-slate-200">Collateralization</span>
-                  <span className="font-medium text-[#66bb6a]">Enabled</span>
+                    )}
+                  </div>
+                </div>
+                <div className='flex justify-end'>
+                <div className='text-[10px]'>Liquidation at {"<"}1.0</div>
+
                 </div>
               </div>
             </div>
@@ -240,6 +285,21 @@ export default function EthSupplyForm({
               )}
             </div>
 
+            <BlueInfoBox>
+              <span className="font-bold">Attention:</span> Parameter changes
+                via governance can alter your account health factor and risk of
+                liquidation. Follow the{" "}
+                <a
+                  target="_blank"
+                  href="https://governance.aave.com/"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  Aave governance forum
+                </a>{" "}
+                for updates.
+            </BlueInfoBox>
+
             <button
               disabled={!amount || isPending}
               type="submit"
@@ -251,9 +311,9 @@ export default function EthSupplyForm({
             >
               {isPending && <Spinner />}
               {isPending
-                ? "Supplying ETH"
+                ? "Borrowing GHO"
                 : amountIsGreaterThanZero
-                ? "Supply ETH"
+                ? "Borrow GHO"
                 : "Enter an amount"}
             </button>
           </form>

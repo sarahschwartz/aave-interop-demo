@@ -1,10 +1,9 @@
-import type { Hash } from "@dutterbutter/zksync-sdk";
+import type { Address, Hash, Hex } from "@dutterbutter/zksync-sdk";
 
-export type HashItem = { 
+export type HashItem = {
   withdrawHash: Hash;
   bundleHash: Hash;
-}
-
+};
 
 export type WithdrawalPhase =
   | "L2_PENDING" // tx not in an L2 block yet
@@ -15,3 +14,22 @@ export type WithdrawalPhase =
   | "FINALIZED" // L2-L1 tx finalized on L1
   | "FINALIZE_FAILED" // prior L1 finalize reverted
   | "UNKNOWN";
+
+export type AaveData = {
+  totalCollateralBase: bigint;
+  totalDebtBase: bigint;
+  availableBorrowsBase: bigint;
+  userBorrowCapBase: bigint;
+  borrowCapReached: boolean;
+  maxAdditionalGho: bigint;
+  ghoPriceInBase: bigint;
+  currentLiquidationThreshold: bigint;
+  ltv: bigint;
+  healthFactor: bigint;
+};
+
+export type ShadowAccountOp = {
+  target: Address;
+  value: bigint;
+  data: Hex;
+};

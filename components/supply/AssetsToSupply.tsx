@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Config, useAccount, UseAccountReturnType, useBalance } from "wagmi";
+import { Config, UseAccountReturnType, useBalance } from "wagmi";
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import SupplyForm from "./SupplyForm";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
@@ -7,7 +7,8 @@ import {
   SkeletonAsset,
   SkeletonBasic,
   SkeletonButtons,
-} from "./ui/SkeletonSupplies";
+} from "../ui/SkeletonSupplies";
+import { tableHeaderStyle } from "@/utils/constants";
 
 interface Props {
   sdk?: ViemSdk;
@@ -35,7 +36,7 @@ export default function AssetsToSupply({
 
   useEffect(() => {
     refetch();
-  }, [updateCount]);
+  }, [updateCount, refetch]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (e: any) => {
@@ -43,9 +44,6 @@ export default function AssetsToSupply({
     const value = target.type === "checkbox" ? target.checked : target.value;
     setShowAssetsWith0Balance(value);
   };
-
-  const tableHeaderStyle =
-    "text-xs text-gray-300 border-b border-gray-500 pb-2";
 
   const docsLink =
     "https://docs.zksync.io/zksync-network/zksync-os/network-details#get-funds-for-your-wallet";

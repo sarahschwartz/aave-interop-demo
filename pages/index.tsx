@@ -26,11 +26,17 @@ import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
 import { SvgIcon } from "@mui/material";
 import { InformationCircleIcon } from "@heroicons/react/outline";
 import {
+  getShadowAccount,
+} from "@/utils/txns";
+import {
+  getAaveBorrowsSummary,
   getAaveDepositSummary,
   getHashes,
-  getShadowAccount,
-} from "@/utils/withdraw";
+} from "@/utils/storage";
 import { getBalance } from "@wagmi/core";
+import { computeCurrentHealthFactor, getFormattedETHUSD, getShadowAccountData } from "@/utils/aave";
+import { AaveData } from "@/utils/types";
+import { CONTRACT_ADDRESSES } from "@/utils/constants";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,28 +50,17 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
+  const [ghoBorrowed, setGhoBorrowed] = useState<string>();
+  const [healthFactor, setHealthFactor] = useState<number>();
+  const [aaveData, setAaveData] = useState<AaveData>();
   const [ethPrice, setEthPrice] = useState<number>();
   const [finalizingDeposits, setFinalizingDeposits] = useState<number>(0);
+  const [finalizingBorrows, setFinalizingBorrows] = useState<number>(0);
   const [sdk, setSdk] = useState<ViemSdk>();
   const [client, setClient] = useState<ViemClient>();
 
   useEffect(() => {
-    async function getPrice() {
-      try {
-        const response = await fetch("/api/get-price", {
-          method: "GET",
-          headers: {},
-        });
-        const prices = await response.json();
-
-        setEthPrice(prices.ethPrice);
-      } catch (e) {
-        console.log("Error fetching price", e);
-      }
-    }
-
     setHasMounted(true);
-    getPrice();
   }, []);
 
   const DEFAULT_L1_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
@@ -142,32 +137,67 @@ export default function Home() {
 
   useEffect(() => {
     async function checkStatus() {
-      if (!hasMounted || !sdk || !account || !client) return;
+      if (!hasMounted || !sdk || !account || !account.address || !client) return;
       setIsLoading(true);
-      const shadowAccount = await getShadowAccount(client, account);
-      const aTokenBalance = await getBalance(config, {
-        address: shadowAccount,
-        chainId: sepolia.id,
-        // aEthWETH token on sepolia
-        token: "0x5b071b590a59395fE4025A0Ccc1FcC931AAc1830",
-      });
-      const hashes = getHashes(account.address!);
-      if (!hashes) {
-        setEthBalance(formatEther(aTokenBalance.value));
-        setIsLoading(false);
+      try {
+      const price = await getFormattedETHUSD(client);
+      setEthPrice(price);
+
+      const shadowAccount = await getShadowAccount(client, account.address);
+      const data = await getShadowAccountData(client, shadowAccount);
+      console.log('aave data:', data)
+      setAaveData(data);
+
+      if(!data){
+        console.log("aave data missing");
         return;
       }
 
-      try {
-        const { totalWeiFinalizing, countFinalizing } = await getAaveDepositSummary(
+      const aTokenBalance = await getBalance(config, {
+        address: shadowAccount,
+        chainId: sepolia.id,
+        token: CONTRACT_ADDRESSES.aToken,
+      });
+
+      const hashes = getHashes(account.address!);
+
+      if(!hashes.borrows){
+        setGhoBorrowed(formatEther(data.totalDebtBase));
+      } else {
+         const borrowSummary = await getAaveBorrowsSummary(
           sdk,
           account.address!,
-          hashes,
+          hashes.borrows,
           client
         );
 
-        setEthBalance(formatEther(totalWeiFinalizing + aTokenBalance.value));
-        setFinalizingDeposits(countFinalizing);
+        console.log('finalizing borrow amount:', borrowSummary.totalWeiFinalizing)
+        setGhoBorrowed(formatEther(borrowSummary.totalWeiFinalizing + data.totalDebtBase));
+        setFinalizingBorrows(borrowSummary.countFinalizing);
+        
+      }
+      
+      if (!hashes.deposits) {
+        setEthBalance(formatEther(aTokenBalance.value));
+      } else {
+      const depositSummary = await getAaveDepositSummary(
+          sdk,
+          account.address!,
+          hashes.deposits,
+          client
+        );
+
+        setEthBalance(formatEther(depositSummary.totalWeiFinalizing + aTokenBalance.value));
+        setFinalizingDeposits(depositSummary.countFinalizing);
+      }
+
+      if(data.totalDebtBase > BigInt(0)){
+        const hf = computeCurrentHealthFactor(data)
+        console.log('current health factor:', hf)
+        setHealthFactor(hf)
+      } else if (data.totalCollateralBase > BigInt(0)){
+        setHealthFactor(1_000_000_000)
+      }
       } catch (e) {
         console.log("ERROR:", e);
       } finally {
@@ -198,8 +228,7 @@ export default function Home() {
       <div className="px-12">
         {account.isConnected && hasMounted ? (
           <>
-            {currentChainId === zksyncOSTestnet.id ||
-            currentChainId === sepolia.id ? (
+            {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
                 <Stats isLoading={isLoading} usdValue={usdValue} />
                 <SupplyAndBorrow
@@ -210,9 +239,11 @@ export default function Home() {
                   ethBalance={ethBalance || "0.00"}
                   setUpdateCount={setUpdateCount}
                   updateCount={updateCount}
-                  ethPrice={ethPrice || 3500}
+                  ethPrice={ethPrice || 4000}
                   usdValue={usdValue}
                   account={account}
+                  aaveData={aaveData}
+                  healthFactor={healthFactor}
                 />
               </div>
             ) : (

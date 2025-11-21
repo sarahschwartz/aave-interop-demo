@@ -4,6 +4,7 @@
     "": {
       "name": "aave-interop-demo",
       "dependencies": {
+        "@aave/math-utils": "^1.36.2",
         "@dutterbutter/zksync-sdk": "^0.0.11-alpha",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
@@ -33,6 +34,8 @@
     },
   },
   "packages": {
+    "@aave/math-utils": ["@aave/math-utils@1.36.2", "", { "peerDependencies": { "bignumber.js": "^9.x", "tslib": "^2.4.x" } }, "sha512-r2SnPyK7MdhlfwTTj9Wq1idRhS1dyErJKeP98MexohRhzhWzsB6Uh3/gD6iK5mZc28V1mxhnUPTi1kD+mO6+/Q=="],
+
     "@adraffy/ens-normalize": ["@adraffy/ens-normalize@1.11.1", "", {}, "sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ=="],
 
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
@@ -686,6 +689,8 @@
     "baseline-browser-mapping": ["baseline-browser-mapping@2.8.25", "", { "bin": { "baseline-browser-mapping": "dist/cli.js" } }, "sha512-2NovHVesVF5TXefsGX1yzx1xgr7+m9JQenvz6FQY3qd+YXkKkYiv+vTCc7OriP9mcDZpTC5mAOYN4ocd29+erA=="],
 
     "big.js": ["big.js@6.2.2", "", {}, "sha512-y/ie+Faknx7sZA5MfGA2xKlu0GDv8RWrXGsmlteyJQ2lvoKv9GBK/fpRMc2qlSoBAgNxrixICFCBefIq8WCQpQ=="],
+
+    "bignumber.js": ["bignumber.js@9.3.1", "", {}, "sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ=="],
 
     "bn.js": ["bn.js@5.2.2", "", {}, "sha512-v2YAxEmKaBLahNwE1mjp4WON6huMNeuDvagFZW+ASCuA/ku0bXR9hSMw0XpiqMoA3+rmnyck/tPRSFQkoC9Cuw=="],
 

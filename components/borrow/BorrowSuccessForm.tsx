@@ -1,7 +1,8 @@
 import { Dispatch, SetStateAction } from "react";
-import { ExternalLinkIcon } from "@heroicons/react/outline";
-import { SvgIcon } from "@mui/material";
-import { WalletIcon } from "./ui/WalletIcon";
+import { ExtLinkIcon } from "@/components/ui/ExtLinkIcon";
+import { WalletIcon } from "../ui/WalletIcon";
+import { useWalletClient } from "wagmi";
+import { CONTRACT_ADDRESSES } from "@/utils/constants";
 
 type Props = {
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
@@ -9,22 +10,33 @@ type Props = {
   amount: string;
 };
 
-const ExtLinkIcon = () => (
-  <SvgIcon sx={{ ml: 2, fontWeight: 800, fontSize: "20px", color: "white" }}>
-    <ExternalLinkIcon />
-  </SvgIcon>
-);
-
-function addSupplyTokenToWallet() {
-  // TODO: implement
-  console.log("added token");
-}
-
-export default function SupplySuccessForm({
+export default function BorrowSuccessForm({
   setShowSupplyModal,
   hashes,
   amount,
 }: Props) {
+  console.log('hashes', hashes)
+
+  const { data: walletClient } = useWalletClient();
+
+  async function addGHOTokenToWallet(){
+  if (!walletClient) return
+
+    // TODO: add l2GhoToken
+    // await walletClient.request({
+    //   method: 'wallet_watchAsset',
+    //   params: {
+    //     type: 'ERC20',
+    //     options: {
+    //       address: CONTRACT_ADDRESSES.l2GhoToken,
+    //       symbol: 'GHO',
+    //       decimals: 18,
+    //       image: 'https://app.aave.com/icons/tokens/gho.svg',
+    //     },
+    //   },
+    // })
+  }
+
   return (
     <div className="flex flex-col w-[360px]">
       <div className="flex justify-end">
@@ -48,13 +60,12 @@ export default function SupplySuccessForm({
 
         <div className="text-xl font-bold mt-3">All done</div>
 
-        <div className="text-sm">You supplied {amount} ETH</div>
-
-        <div className="text-sm flex flex-col items-center gap-2 rounded-2xl text-slate-100 mt-6 mb-2 border border-gray-700 p-4">
-          <div>Add aToken to wallet to track your balance</div>
+        <div className="text-sm">You borrowed {amount} GHO</div>
+                <div className="text-sm flex flex-col items-center gap-2 rounded-2xl text-slate-100 mt-6 mb-2 border border-gray-700 p-4">
+          <div>Add token to wallet to track your balance</div>
           <button
             className="cursor-pointer bg-gray-700 p-2 rounded-md border border-gray-600"
-            onClick={addSupplyTokenToWallet}
+            onClick={addGHOTokenToWallet}
           >
             <WalletIcon
               sx={{ width: "20px", height: "20px", marginRight: "4px" }}

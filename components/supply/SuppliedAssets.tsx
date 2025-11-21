@@ -1,10 +1,11 @@
-import { StyledSwitch } from "./ui/StyledSwitch";
-import Tooltip from "./ui/Tooltip";
+import { StyledSwitch } from "../ui/StyledSwitch";
+import Tooltip from "../ui/Tooltip";
 import {
   SkeletonAsset,
   SkeletonBasic,
   SkeletonButtons,
-} from "./ui/SkeletonSupplies";
+} from "../ui/SkeletonSupplies";
+import { tableHeaderStyle } from "@/utils/constants";
 
 interface Props {
   isLoading: boolean;
@@ -19,14 +20,17 @@ export function SuppliedAssets({
   ethBalance,
   usdValue,
 }: Props) {
-  const tableHeaderStyle =
-    "text-xs text-gray-300 border-b border-gray-500 pb-2";
 
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
 
   const pendingText = `${finalizingDeposits} Aave ${
     finalizingDeposits === 1 ? "deposit" : "deposits"
   } still finalizing. This usually takes ~6 minutes.`;
+
+  const formattedUsd =usdValue.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })
 
   return (
     <div>
@@ -37,7 +41,7 @@ export function SuppliedAssets({
           {!isLoading && (
             <div className="ml-1 flex gap-2 text-sm mt-4 text-gray-400">
               <div className={statsStyles}>
-                Balance $ <span className="text-white">{usdValue}</span>
+                Balance $ <span className="text-white">{formattedUsd}</span>
               </div>
               <div className={statsStyles + " flex items-center gap-1"}>
                 <span>
@@ -47,7 +51,7 @@ export function SuppliedAssets({
               </div>
               <div className={statsStyles + " flex items-center gap-1"}>
                 <span>
-                  Collateral $ <span className="text-white">{usdValue}</span>
+                  Collateral $ <span className="text-white">{formattedUsd}</span>
                 </span>{" "}
                 <Tooltip text="The total amount of your assets denominated in USD that can be used as collateral for borrowing assets." />
               </div>
@@ -92,7 +96,7 @@ export function SuppliedAssets({
                 <div>
                   {Math.round(parseFloat(ethBalance) * 100000) / 100000}
                 </div>
-                <div className="text-gray-400 text-xs">$ {usdValue}</div>
+                <div className="text-gray-400 text-xs">$ {formattedUsd}</div>
               </div>
             )}
 

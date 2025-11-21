@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aave/math-utils": "^1.36.2",
     "@dutterbutter/zksync-sdk": "^0.0.11-alpha",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
