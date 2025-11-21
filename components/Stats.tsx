@@ -1,17 +1,21 @@
 import { GRADIENT } from "@/utils/constants";
 import Header from "./ui/Header";
 import { SkeletonBasic } from "./ui/SkeletonSupplies";
-import { getHealthFactorColor } from "@/utils/aave";
+import { getHealthFactorColor, getNetAPY } from "@/utils/aave";
 
 export default function Stats({
   usdValue,
+  ghoBorrowed,
   isLoading,
   healthFactor,
 }: {
   usdValue: number;
+  ghoBorrowed: number;
   isLoading: boolean;
   healthFactor?: number;
 }) {
+  const netWorth = usdValue - ghoBorrowed;
+  const netAPY = getNetAPY(usdValue, ghoBorrowed);
   return (
     <>
       <Header />
@@ -24,7 +28,7 @@ export default function Stats({
             <div className="flex font-bold gap-1 text-xl">
               <span>$</span>
               <span className="text-white">
-                {usdValue.toLocaleString(undefined, {
+                {netWorth.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -42,7 +46,9 @@ export default function Stats({
               <div>
                 {usdValue > 0 ? (
                   <span>
-                    <span className="text-white">0</span> %
+                    <span className="text-white">{netAPY.toLocaleString(undefined, {
+                  maximumFractionDigits: 3,
+                })}</span> %
                   </span>
                 ) : (
                   <span>-</span>

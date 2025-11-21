@@ -158,3 +158,15 @@ export const getHealthFactorColor = (hf: number | undefined) => {
     return "text-[#FFA726]";
   }
 };
+
+export function getNetAPY(supplyUSD: number, ghoBorrowed: number){
+// 0%
+const ETH_SUPPLY_APY = 0;
+// 2.02%
+const GHO_BORROW_APY = 0.0202;
+
+const supplyApyUsd = supplyUSD * ETH_SUPPLY_APY;
+const borrowApyUsd = ghoBorrowed * GHO_BORROW_APY;
+
+return (supplyApyUsd - borrowApyUsd) / supplyUSD
+}

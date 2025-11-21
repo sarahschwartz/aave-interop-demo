@@ -49,8 +49,6 @@ const borrowPowerUsed =
     ? Number(aaveData.totalDebtBase) / Number(aaveData.userBorrowCapBase) * 100
     : 0;
 
-    console.log("borrowPowerUsed", borrowPowerUsed)
-
   return (
     <div>
       {!isLoading && (parseFloat(ghoBorrowed) == 0) ? (

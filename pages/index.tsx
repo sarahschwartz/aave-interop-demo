@@ -258,6 +258,7 @@ export default function Home() {
                 <Stats
                   isLoading={isLoading}
                   usdValue={usdValue}
+                  ghoBorrowed={parseFloat(ghoBorrowed)}
                   healthFactor={healthFactor}
                 />
                 <SupplyAndBorrow
