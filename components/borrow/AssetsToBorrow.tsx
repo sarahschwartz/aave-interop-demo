@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction } from "react";
 import type { Config, UseAccountReturnType } from "wagmi";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import {
@@ -9,7 +9,6 @@ import {
 import { tableHeaderStyle } from "@/utils/constants";
 import Tooltip from "../ui/Tooltip";
 import { AaveData } from "@/utils/types";
-import { formatEther } from "viem";
 import { BlueInfoBox } from "../ui/BlueInfoBox";
 import { BorrowModal } from "./BorrowModal";
 
@@ -24,6 +23,7 @@ interface Props {
   showBorrowModal: boolean;
   setShowBorrowModal: Dispatch<SetStateAction<boolean>>;
   ethPrice: number;
+  available: string;
 }
 
 export default function AssetsToBorrow({
@@ -36,18 +36,9 @@ export default function AssetsToBorrow({
   healthFactor,
   showBorrowModal,
   setShowBorrowModal,
-  ethPrice
+  ethPrice,
+  available
 }: Props) {
-  const available = aaveData
-    ? parseFloat(formatEther(aaveData.maxAdditionalGho)).toLocaleString(
-        undefined,
-        {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }
-      )
-    : "0";
-
   const notAvailableToBorrow =
     !aaveData ||
     aaveData?.totalCollateralBase <= BigInt(0) ||

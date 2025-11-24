@@ -40,3 +40,8 @@ export interface Balance {
   symbol: string;
   value: bigint;
 }
+
+export interface Summary {
+    totalWeiFinalizing: bigint;
+    countFinalizing: number;
+}

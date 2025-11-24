@@ -46,9 +46,12 @@ export default function Stats({
               <div>
                 {usdValue > 0 ? (
                   <span>
-                    <span className="text-white">{netAPY.toLocaleString(undefined, {
-                  maximumFractionDigits: 3,
-                })}</span> %
+                    <span className="text-white">
+                      {netAPY.toLocaleString(undefined, {
+                        maximumFractionDigits: 3,
+                      })}
+                    </span>{" "}
+                    %
                   </span>
                 ) : (
                   <span>-</span>
@@ -62,15 +65,25 @@ export default function Stats({
           <div>
             <div>Health Factor</div>
 
-            <div className='flex gap-1 items-center'>
-              <span className={`font-bold text-xl items-center ${getHealthFactorColor(healthFactor)}`}>
-                {healthFactor.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+            {isLoading ? (
+              <SkeletonBasic />
+            ) : (
+              <div className="flex gap-1 items-center">
+                <span
+                  className={`font-bold text-xl items-center ${getHealthFactorColor(
+                    healthFactor
+                  )}`}
+                >
+                  {healthFactor.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </span>
-                <button className="cursor-pointer px-2 h-6 border border-gray-500 text-[10px] font-semibold rounded-sm text-white bg-gray-700 hover:bg-gray-900">RISK DETAILS</button>
-            </div>
+                <button className="cursor-pointer px-2 h-6 border border-gray-500 text-[10px] font-semibold rounded-sm text-white bg-gray-700 hover:bg-gray-900">
+                  RISK DETAILS
+                </button>
+              </div>
+            )}
           </div>
         )}
 

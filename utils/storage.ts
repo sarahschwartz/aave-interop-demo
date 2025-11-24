@@ -1,5 +1,5 @@
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
-import type { HashItem, ShadowAccountOp } from "./types";
+import type { Summary, HashItem, ShadowAccountOp } from "./types";
 import type { Hash, Hex } from "@dutterbutter/zksync-sdk";
 import { decodeFunctionData } from "viem";
 import { CONTRACT_ADDRESSES } from "./constants";
@@ -94,7 +94,7 @@ export async function getAaveBorrowsSummary(
   address: `0x${string}`,
   items: HashItem[],
   client: ViemClient
-) {
+): Promise<Summary> {
   const storageKey = `${borrowsKeyBase}${address}`;
   const summary = await getSummary(sdk, items, client, storageKey);
   return summary;
@@ -105,7 +105,7 @@ export async function getAaveDepositSummary(
   address: `0x${string}`,
   items: HashItem[],
   client: ViemClient
-) {
+): Promise<Summary>{
   const storageKey = `${depositsKeyBase}${address}`;
   const summary = await getSummary(sdk, items, client, storageKey);
   return summary;

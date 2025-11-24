@@ -1,5 +1,10 @@
 import { sendHashesForFinalization } from "@/utils/helpers";
-import { getBorrowBundle, getShadowAccount, getWithdrawEstimate, initWithdraw } from "@/utils/txns";
+import {
+  getBorrowBundle,
+  getShadowAccount,
+  getWithdrawEstimate,
+  initWithdraw,
+} from "@/utils/txns";
 import { storeBorrowHashes } from "@/utils/storage";
 import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
@@ -46,7 +51,7 @@ export default function GHOBorrowForm({
   account,
   aaveData,
   healthFactor,
-  ethPrice
+  ethPrice,
 }: Props) {
   const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
@@ -137,34 +142,42 @@ export default function GHOBorrowForm({
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async function handleChange(e: any) {
-      try{
-          const value =
-      e.target.value > parseFloat(formatEther(aaveData.maxAdditionalGho))
-        ? formatEther(aaveData.maxAdditionalGho)
-        : e.target.value;
+  async function handleChange(e: any) {
+    try {
+      const value =
+        e.target.value > parseFloat(formatEther(aaveData.maxAdditionalGho))
+          ? formatEther(aaveData.maxAdditionalGho)
+          : e.target.value;
       setAmount(value);
-        if(!sdk || !client) return;
-        const shadowAccount = await getShadowAccount(client, account.address!);
-        const ghoAmount = parseEther(value);
-        const bundle = await getBorrowBundle(account, shadowAccount, ghoAmount, client);
-        const withdrawGas = await getWithdrawEstimate(bundle.l1GasNeeded, sdk, shadowAccount);
-        const bundleGas = await estimateGas(config, {...bundle.bundle, chainId: zksyncOSTestnet.id});
-        const totalGas = withdrawGas + bundleGas;
-        const gasPrice = await client.l1.getGasPrice();
-        const totalWei =totalGas * gasPrice + bundle.l1GasNeeded;
-        // const totalWei = withdrawL1Gas ? totalGas * gasPrice + bundle.l1GasNeeded : totalGas * gasPrice;
-        const ethCost = Number(formatEther(totalWei));
-        const usd = ethCost * ethPrice;
-        if(usd < 0.01){
-          setGasEstimate("< $ 0.01");
-        } else {
-          setGasEstimate("$ " + usd.toFixed(2));
-        }
-      } catch (e){
-        console.log('Something wrong in amount input', e);
-      }
+      // if(!sdk || !client) return;
+      // const shadowAccount = await getShadowAccount(client, account.address!);
+      // const ghoAmount = parseEther(value);
+      // const bundle = await getBorrowBundle(account, shadowAccount, ghoAmount, client);
+      // const withdrawGas = await getWithdrawEstimate(bundle.l1GasNeeded, sdk, shadowAccount);
+      // const bundleGas = await estimateGas(config, {...bundle.bundle, chainId: zksyncOSTestnet.id});
+      // const totalGas = withdrawGas + bundleGas;
+      // const gasPrice = await client.l1.getGasPrice();
+      // const totalWei = totalGas * gasPrice + bundle.l1GasNeeded;
+      // const totalWei = withdrawL1Gas ? totalGas * gasPrice + bundle.l1GasNeeded : totalGas * gasPrice;
+      // const ethCost = Number(formatEther(totalWei));
+      // const usd = ethCost * ethPrice;
+      // if(usd < 0.01){
+      //   setGasEstimate("< $ 0.01");
+      // } else {
+      //   setGasEstimate("$ " + usd.toFixed(2));
+      // }
+      const response = await fetch("/api/get-price", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const json = await response.json();
+      const price = json.ethPrice || ethPrice;
+      setGasEstimate("$ " + (0.00135 * price + 0.03).toFixed(2));
+    } catch (e) {
+      console.log("Something wrong in amount input", e);
     }
+  }
 
   return (
     <>
@@ -269,17 +282,11 @@ export default function GHOBorrowForm({
                 <div className="flex justify-between">
                   <div className="text-white">Health Factor</div>
                   <div className="flex items-center">
-                    
-                    <span
-                      className={`${getHealthFactorColor(
-                        healthFactor
-                      )}`}
-                    >
-                      {(!healthFactor || healthFactor >= 1_000_000) ? (
-                        <span className='text-xl font-bold'>∞</span>
+                    <span className={`${getHealthFactorColor(healthFactor)}`}>
+                      {!healthFactor || healthFactor >= 1_000_000 ? (
+                        <span className="text-xl font-bold">∞</span>
                       ) : (
-                        <span>{healthFactor.toFixed(2)}
-                          </span>
+                        <span>{healthFactor.toFixed(2)}</span>
                       )}
                     </span>
                     {newHealthFactor() && <span>{ArrowRightIcon}</span>}

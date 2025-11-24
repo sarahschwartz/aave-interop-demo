@@ -14,6 +14,7 @@ import {
   custom,
   EIP1193Provider,
   formatEther,
+  formatUnits,
 } from "viem";
 import {
   createViemClient,
@@ -33,11 +34,14 @@ import {
 } from "@/utils/storage";
 import { getBalance } from "@wagmi/core";
 import {
+  buildProjectedAaveDataFromHashes,
   computeCurrentHealthFactor,
+  computeProjectedHealthFactorAfterGhoBorrow,
+  getBorrowedAmount,
   getFormattedETHUSD,
   getShadowAccountData,
 } from "@/utils/aave";
-import { AaveData } from "@/utils/types";
+import { AaveData, Summary } from "@/utils/types";
 import { CONTRACT_ADDRESSES } from "@/utils/constants";
 
 const inter = Inter({
@@ -53,6 +57,8 @@ export default function Home() {
   const [updateCount, setUpdateCount] = useState<number>(1);
   const [ethBalance, setEthBalance] = useState<string>();
   const [ghoBorrowed, setGhoBorrowed] = useState<string>("0.00");
+  const [ghoAvailableToBorrow, setGhoAvailableToBorrow] =
+    useState<string>("0.00");
   const [healthFactor, setHealthFactor] = useState<number>();
   const [aaveData, setAaveData] = useState<AaveData>();
   const [ethPrice, setEthPrice] = useState<number>();
@@ -142,6 +148,7 @@ export default function Home() {
       if (!hasMounted || !sdk || !account || !account.address || !client)
         return;
       setIsLoading(true);
+
       try {
         const price = await getFormattedETHUSD(client);
         setEthPrice(price);
@@ -163,6 +170,15 @@ export default function Home() {
 
         const hashes = getHashes(account.address!);
 
+        let borrowSummary: Summary = {
+          totalWeiFinalizing: BigInt(0),
+          countFinalizing: 0,
+        };
+        let depositSummary: Summary = {
+          totalWeiFinalizing: BigInt(0),
+          countFinalizing: 0,
+        };
+
         if (!hashes.borrows || hashes.borrows.length === 0) {
           const borrowed =
             data && data.totalDebtBase
@@ -175,28 +191,15 @@ export default function Home() {
               : "0.00";
           setGhoBorrowed(borrowed);
         } else {
-          const borrowSummary = await getAaveBorrowsSummary(
+          borrowSummary = await getAaveBorrowsSummary(
             sdk,
             account.address!,
             hashes.borrows,
             client
           );
 
+          const borrowed = getBorrowedAmount(data, borrowSummary);
 
-          const finalizingAmount =
-            borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
-          const borrowed =
-            data && data.totalDebtBase
-              ? parseFloat(
-                  (
-                    (data.totalDebtBase + finalizingAmount) /
-                    BigInt(100_000_000)
-                  ).toString()
-                ).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
-              : "0.00";
           setGhoBorrowed(borrowed);
           setFinalizingBorrows(borrowSummary.countFinalizing);
         }
@@ -204,7 +207,7 @@ export default function Home() {
         if (!hashes.deposits || hashes.deposits.length === 0) {
           setEthBalance(formatEther(aTokenBalance.value));
         } else {
-          const depositSummary = await getAaveDepositSummary(
+          depositSummary = await getAaveDepositSummary(
             sdk,
             account.address!,
             hashes.deposits,
@@ -217,12 +220,27 @@ export default function Home() {
           setFinalizingDeposits(depositSummary.countFinalizing);
         }
 
-        if (data.totalDebtBase > BigInt(0)) {
-          const hf = computeCurrentHealthFactor(data);
-          setHealthFactor(hf);
-        } else if (data.totalCollateralBase > BigInt(0)) {
-          setHealthFactor(1_000_000_000);
-        }
+        const projectedData = buildProjectedAaveDataFromHashes(
+          data,
+          price,
+          depositSummary,
+          borrowSummary
+        );
+
+        // health factor using your existing helper
+        const projectedHealthFactor = computeCurrentHealthFactor(projectedData);
+        setHealthFactor(projectedHealthFactor);
+
+        // available GHO to borrow, 18 decimals → string
+        const ghoAvailableRaw = projectedData.maxAdditionalGho;
+        const ghoAvailableNumber = Number(formatUnits(ghoAvailableRaw, 18));
+
+        setGhoAvailableToBorrow(
+          ghoAvailableNumber.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
       } catch (e) {
         console.log("ERROR:", e);
       } finally {
@@ -276,6 +294,7 @@ export default function Home() {
                   aaveData={aaveData}
                   healthFactor={healthFactor}
                   ghoBorrowed={ghoBorrowed}
+                  ghoAvailableToBorrow={ghoAvailableToBorrow}
                 />
               </div>
             ) : (

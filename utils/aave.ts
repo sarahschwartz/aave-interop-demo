@@ -2,7 +2,7 @@ import { CONTRACT_ADDRESSES, GREEN_TEXT } from "./constants";
 import I_POOL_JSON from "@/utils/abis/IPool.json";
 import { type Abi } from "viem";
 import { ViemClient } from "@dutterbutter/zksync-sdk/viem";
-import { AaveData } from "./types";
+import type { AaveData, Summary } from "./types";
 
 const oracleAbi = [
   {
@@ -159,14 +159,100 @@ export const getHealthFactorColor = (hf: number | undefined) => {
   }
 };
 
-export function getNetAPY(supplyUSD: number, ghoBorrowed: number){
-// 0%
-const ETH_SUPPLY_APY = 0;
-// 2.02%
-const GHO_BORROW_APY = 0.0202;
+export function getNetAPY(supplyUSD: number, ghoBorrowed: number) {
+  // 0%
+  const ETH_SUPPLY_APY = 0;
+  // 2.02%
+  const GHO_BORROW_APY = 0.0202;
 
-const supplyApyUsd = supplyUSD * ETH_SUPPLY_APY;
-const borrowApyUsd = ghoBorrowed * GHO_BORROW_APY;
+  const supplyApyUsd = supplyUSD * ETH_SUPPLY_APY;
+  const borrowApyUsd = ghoBorrowed * GHO_BORROW_APY;
 
-return (supplyApyUsd - borrowApyUsd) / supplyUSD
+  return (supplyApyUsd - borrowApyUsd) / supplyUSD;
+}
+
+export function getBorrowedAmount(
+  aaveData: AaveData,
+  borrowSummary: {
+    totalWeiFinalizing: bigint;
+    countFinalizing: number;
+  }
+) {
+  const finalizingAmount =
+    borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
+  const borrowed =
+    aaveData && aaveData.totalDebtBase
+      ? parseFloat(
+          (
+            (aaveData.totalDebtBase + finalizingAmount) /
+            BigInt(100_000_000)
+          ).toString()
+        ).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : "0.00";
+  return borrowed;
+}
+
+export function buildProjectedAaveDataFromHashes(
+  data: AaveData,
+  ethPriceUsd: number,
+  depositSummary?: Summary,
+  borrowSummary?: Summary
+): AaveData {
+  // Aave "base" in your setup is USD * 1e8 (from your sample data)
+  const ethPriceBase = BigInt(Math.round(ethPriceUsd * 1e8)); // 1e8 decimals
+
+  // Derive GHO price in base from what you already have:
+  //   maxAdditionalGho = (availableBorrowsBase * 1e18) / ghoPriceInBase
+  let ghoPriceInBase: bigint;
+  if (data.maxAdditionalGho > BigInt(0) && data.availableBorrowsBase > BigInt(0)) {
+    ghoPriceInBase =
+      (data.availableBorrowsBase * BigInt(10) ** BigInt(18)) / data.maxAdditionalGho;
+  } else {
+    // safe default: ~1 USD (1e8) if user has 0 available borrows
+    ghoPriceInBase = BigInt(10) ** BigInt(8);
+  }
+
+  // --- deltas from hashes ---
+
+  // 1) pending ETH deposits → extra collateral in base
+  const pendingCollateralBase =
+    depositSummary && depositSummary.totalWeiFinalizing > BigInt(0)
+      ? (depositSummary.totalWeiFinalizing * ethPriceBase) / BigInt(10) ** BigInt(18)
+      : BigInt(0);
+
+  // 2) pending GHO borrows → extra debt in base
+  const pendingDebtBase =
+    borrowSummary && borrowSummary.totalWeiFinalizing > BigInt(0)
+      ? (borrowSummary.totalWeiFinalizing * ghoPriceInBase) / BigInt(10) ** BigInt(18)
+      : BigInt(0);
+
+  // --- projected collateral / debt ---
+
+  const totalCollateralBase =
+    data.totalCollateralBase + pendingCollateralBase;
+  const totalDebtBase = data.totalDebtBase + pendingDebtBase;
+
+  // --- recompute availableBorrowsBase and maxAdditionalGho from fundamentals ---
+
+  const rawAvailableBorrowsBase =
+    (totalCollateralBase * data.ltv) / BigInt(10_000) - totalDebtBase;
+
+  const availableBorrowsBase =
+    rawAvailableBorrowsBase > BigInt(0) ? rawAvailableBorrowsBase : BigInt(0);
+
+  const maxAdditionalGho =
+    availableBorrowsBase > BigInt(0)
+      ? (availableBorrowsBase * BigInt(10) ** BigInt(18)) / ghoPriceInBase
+      : BigInt(0);
+
+  return {
+    ...data,
+    totalCollateralBase,
+    totalDebtBase,
+    availableBorrowsBase,
+    maxAdditionalGho,
+  };
 }

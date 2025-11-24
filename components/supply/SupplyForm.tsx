@@ -104,7 +104,14 @@ export default function EthSupplyForm({
       const gasPrice = await client.l1.getGasPrice();
       const totalWei = totalGas * gasPrice;
       const ethCost = Number(formatEther(totalWei));
-      const usd = ethCost * ethPrice;
+      const response = await fetch("/api/get-price", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const json = await response.json();
+      const price = json.ethPrice || ethPrice;
+      const usd = ethCost * price;
       if(usd < 0.01){
         setGasEstimate("< $ 0.01");
       } else {
