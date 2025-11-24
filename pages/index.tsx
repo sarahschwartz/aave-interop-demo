@@ -283,7 +283,7 @@ export default function Home() {
         </div>
       </div>
       <div className="px-12">
-        {account.isConnected && hasMounted && l1ShadowAccount ? (
+        {account.isConnected && hasMounted ? (
           <>
             {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
@@ -311,7 +311,7 @@ export default function Home() {
                   healthFactor={healthFactor}
                   ghoBorrowed={ghoBorrowed}
                   ghoAvailableToBorrow={ghoAvailableToBorrow}
-                  shadowAccount={l1ShadowAccount}
+                  shadowAccount={l1ShadowAccount || '0x...'}
                 />
               </div>
             ) : (

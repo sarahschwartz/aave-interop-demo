@@ -173,16 +173,11 @@ export function getNetAPY(supplyUSD: number, ghoBorrowed: number) {
 
 export function getBorrowedAmount(
   aaveData: AaveData,
-  borrowSummary: {
-    totalWeiFinalizing: bigint;
-    countFinalizing: number;
-  }
+  borrowSummary: Summary
 ) {
   const finalizingAmount =
     borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
-  const borrowed =
-    aaveData && aaveData.totalDebtBase
-      ? parseFloat(
+  const borrowed = parseFloat(
           (
             (aaveData.totalDebtBase + finalizingAmount) /
             BigInt(100_000_000)
@@ -190,8 +185,7 @@ export function getBorrowedAmount(
         ).toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
-        })
-      : "0.00";
+        });
   return borrowed;
 }
 
