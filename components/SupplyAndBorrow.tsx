@@ -26,6 +26,7 @@ interface Props {
   healthFactor?: number;
   ghoBorrowed: string;
   ghoAvailableToBorrow: string;
+  shadowAccount: `0x${string}`
 }
 
 export default function SupplyAndBorrow({
@@ -43,7 +44,8 @@ export default function SupplyAndBorrow({
   aaveData,
   healthFactor,
   ghoBorrowed,
-  ghoAvailableToBorrow
+  ghoAvailableToBorrow,
+  shadowAccount
 }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const [assetsToSupplyCollapsed, setAssetsToSupplyCollapsed] =
@@ -162,6 +164,7 @@ export default function SupplyAndBorrow({
                 balance={balance}
                 showSupplyModal={showSupplyModal}
                 setShowSupplyModal={setShowSupplyModal}
+                shadowAccount={shadowAccount}
               />
             )}
           </div>
@@ -193,6 +196,7 @@ export default function SupplyAndBorrow({
                 balance={balance}
                 showSupplyModal={showSupplyModal}
                 setShowSupplyModal={setShowSupplyModal}
+                shadowAccount={shadowAccount}
               />
             )}
           </div>
@@ -236,6 +240,7 @@ export default function SupplyAndBorrow({
                 setShowBorrowModal={setShowBorrowModal}
                 ghoBorrowed={ghoBorrowed}
                 ethPrice={ethPrice}
+                shadowAccount={shadowAccount}
               />
             )}
           </div>
@@ -268,6 +273,7 @@ export default function SupplyAndBorrow({
                 setShowBorrowModal={setShowBorrowModal}
                 ethPrice={ethPrice}
                 available={ghoAvailableToBorrow}
+                shadowAccount={shadowAccount}
               />
             )}
           </div>

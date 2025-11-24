@@ -54,7 +54,7 @@ export default function Home() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
-  const [l1ShadowAccount, setL1ShadowAccount] = useState<string>();
+  const [l1ShadowAccount, setL1ShadowAccount] = useState<`0x${string}`>();
   const [ethBalance, setEthBalance] = useState<string>();
   const [ghoBorrowed, setGhoBorrowed] = useState<string>("0.00");
   const [ghoAvailableToBorrow, setGhoAvailableToBorrow] =
@@ -283,7 +283,7 @@ export default function Home() {
         </div>
       </div>
       <div className="px-12">
-        {account.isConnected && hasMounted ? (
+        {account.isConnected && hasMounted && l1ShadowAccount ? (
           <>
             {currentChainId === zksyncOSTestnet.id ? (
               <div className="mt-12 mx-12">
@@ -311,6 +311,7 @@ export default function Home() {
                   healthFactor={healthFactor}
                   ghoBorrowed={ghoBorrowed}
                   ghoAvailableToBorrow={ghoAvailableToBorrow}
+                  shadowAccount={l1ShadowAccount}
                 />
               </div>
             ) : (
