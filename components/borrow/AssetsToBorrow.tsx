@@ -23,6 +23,7 @@ interface Props {
   healthFactor?: number;
   showBorrowModal: boolean;
   setShowBorrowModal: Dispatch<SetStateAction<boolean>>;
+  ethPrice: number;
 }
 
 export default function AssetsToBorrow({
@@ -35,6 +36,7 @@ export default function AssetsToBorrow({
   healthFactor,
   showBorrowModal,
   setShowBorrowModal,
+  ethPrice
 }: Props) {
   const available = aaveData
     ? parseFloat(formatEther(aaveData.maxAdditionalGho)).toLocaleString(
@@ -125,6 +127,7 @@ export default function AssetsToBorrow({
         client={client}
         setUpdateCount={setUpdateCount}
         healthFactor={healthFactor}
+        ethPrice={ethPrice}
       />
     </div>
   );

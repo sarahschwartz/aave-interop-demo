@@ -15,6 +15,7 @@ interface Props {
   aaveData?: AaveData;
   account: UseAccountReturnType<Config>;
   healthFactor?: number;
+  ethPrice: number;
 }
 
 export function BorrowModal({
@@ -26,6 +27,7 @@ export function BorrowModal({
   account,
   setUpdateCount,
   healthFactor,
+  ethPrice
 }: Props) {
   return (
     <Dialog
@@ -59,6 +61,7 @@ export function BorrowModal({
                   client={client}
                   setUpdateCount={setUpdateCount}
                   healthFactor={healthFactor}
+                  ethPrice={ethPrice}
                 />
               )}
             </div>

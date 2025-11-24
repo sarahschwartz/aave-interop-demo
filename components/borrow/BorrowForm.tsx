@@ -1,5 +1,5 @@
 import { sendHashesForFinalization } from "@/utils/helpers";
-import { getBorrowBundle, getShadowAccount, initWithdraw } from "@/utils/txns";
+import { getBorrowBundle, getShadowAccount, getWithdrawEstimate, initWithdraw } from "@/utils/txns";
 import { storeBorrowHashes } from "@/utils/storage";
 import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
@@ -8,12 +8,11 @@ import Spinner from "../ui/Spinner";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import Tooltip from "../ui/Tooltip";
 import { formatEther, parseEther } from "viem";
-import { writeContract } from "@wagmi/core";
-import { config } from "@/utils/wagmi";
+import { estimateGas, writeContract } from "@wagmi/core";
+import { config, zksyncOSTestnet } from "@/utils/wagmi";
 import { ErrorBox } from "@/components/ui/ErrorBox";
 import BorrowSuccessForm from "./BorrowSuccessForm";
 import { BlueInfoBox } from "../ui/BlueInfoBox";
-import { GREEN_TEXT } from "@/utils/constants";
 import { ArrowNarrowRightIcon } from "@heroicons/react/solid";
 import { SvgIcon } from "@mui/material";
 import {
@@ -30,6 +29,7 @@ type Props = {
   account: UseAccountReturnType<Config>;
   aaveData: AaveData;
   healthFactor?: number;
+  ethPrice: number;
 };
 
 const ArrowRightIcon = (
@@ -46,13 +46,15 @@ export default function GHOBorrowForm({
   account,
   aaveData,
   healthFactor,
+  ethPrice
 }: Props) {
   const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [hashes, setHashes] = useState<[`0x${string}`, `0x${string}`]>();
-  // const [gasEstimate, setGasEstimate] = useState<bigint>();
+  const [gasEstimate, setGasEstimate] = useState<string>();
+  // const [withdrawL1Gas, setWithdrawL1Gas] = useState<boolean>(true);
 
   const amountNumber = useMemo(
     () => Number(amount.replace(/,/g, "")) || 0,
@@ -135,19 +137,34 @@ export default function GHOBorrowForm({
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function handleChange(e: any) {
-    const value =
+    async function handleChange(e: any) {
+      try{
+          const value =
       e.target.value > parseFloat(formatEther(aaveData.maxAdditionalGho))
         ? formatEther(aaveData.maxAdditionalGho)
         : e.target.value;
-    setAmount(value);
-    //
-    //   if(!sdk) return;
-    //   const quote = await estimateGas(account, parseEther(value), sdk);
-    //   if(quote?.suggestedL2GasLimit){
-    //     setGasEstimate(quote.suggestedL2GasLimit);
-    //   }
-  }
+      setAmount(value);
+        if(!sdk || !client) return;
+        const shadowAccount = await getShadowAccount(client, account.address!);
+        const ghoAmount = parseEther(value);
+        const bundle = await getBorrowBundle(account, shadowAccount, ghoAmount, client);
+        const withdrawGas = await getWithdrawEstimate(bundle.l1GasNeeded, sdk, shadowAccount);
+        const bundleGas = await estimateGas(config, {...bundle.bundle, chainId: zksyncOSTestnet.id});
+        const totalGas = withdrawGas + bundleGas;
+        const gasPrice = await client.l1.getGasPrice();
+        const totalWei =totalGas * gasPrice + bundle.l1GasNeeded;
+        // const totalWei = withdrawL1Gas ? totalGas * gasPrice + bundle.l1GasNeeded : totalGas * gasPrice;
+        const ethCost = Number(formatEther(totalWei));
+        const usd = ethCost * ethPrice;
+        if(usd < 0.01){
+          setGasEstimate("< $ 0.01");
+        } else {
+          setGasEstimate("$ " + usd.toFixed(2));
+        }
+      } catch (e){
+        console.log('Something wrong in amount input', e);
+      }
+    }
 
   return (
     <>
@@ -278,18 +295,27 @@ export default function GHOBorrowForm({
                 <div className="flex justify-end">
                   <div className="text-[10px]">Liquidation at {"<"}1.0</div>
                 </div>
+                {/* TODO: allow users with enough gas funds in shadow account on L1 to skip withdraw */}
+                {/* {shadowAccountHasEnoughGas && (
+                <div className='text-white mt-4'>
+                  <div>
+                  Withdraw 0.00135 ETH to L1 to pay for bridging?
+                  <Tooltip text="The GHO you borrow will be automatically bridged back to this L2, which requires at least 0.00135 ETH on L1. If your shadow account already has this much ETH on L1, you can opt out of bridging." />
+                  </div>
+                  </div>
+                )} */}
               </div>
             </div>
 
             <div className="text-white pt-6 flex items-center gap-1">
               <LocalGasStationIcon color="inherit" sx={{ fontSize: "16px" }} />
               <div className="text-gray-400 text-[12px]">
-                {amountIsGreaterThanZero ? "< $ 0.01" : "-"}
+                {amountIsGreaterThanZero && gasEstimate ? gasEstimate : "-"}
               </div>
               {amountIsGreaterThanZero && (
                 <Tooltip
                   text="This gas calculation is only an estimation. Your wallet will set the price of the
-        transaction. You can modify the gas settings directly from your wallet provider."
+        transaction. You can modify the gas settings directly from your wallet provider. This includes the cost withdrawing ETH to L1 to pay for bridging the GHO back to the L2."
                 />
               )}
             </div>

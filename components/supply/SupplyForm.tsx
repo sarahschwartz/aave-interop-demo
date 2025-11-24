@@ -108,7 +108,7 @@ export default function EthSupplyForm({
       if(usd < 0.01){
         setGasEstimate("< $ 0.01");
       } else {
-        setGasEstimate(usd.toFixed(2));
+        setGasEstimate("$ " + usd.toFixed(2));
       }
     } catch (e){
       console.log('Something wrong in amount input', e);

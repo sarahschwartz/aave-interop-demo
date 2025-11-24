@@ -233,6 +233,7 @@ export default function SupplyAndBorrow({
                 showBorrowModal={showBorrowModal}
                 setShowBorrowModal={setShowBorrowModal}
                 ghoBorrowed={ghoBorrowed}
+                ethPrice={ethPrice}
               />
             )}
           </div>
@@ -263,6 +264,7 @@ export default function SupplyAndBorrow({
                 healthFactor={healthFactor}
                 showBorrowModal={showBorrowModal}
                 setShowBorrowModal={setShowBorrowModal}
+                ethPrice={ethPrice}
               />
             )}
           </div>
