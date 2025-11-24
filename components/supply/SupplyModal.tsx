@@ -13,6 +13,7 @@ interface Props {
   account: UseAccountReturnType<Config>;
   balance: number | bigint;
   ethPrice: number;
+  shadowAccount: `0x${string}`;
 }
 
 export function SupplyModal({
@@ -23,7 +24,8 @@ export function SupplyModal({
   account,
   setUpdateCount,
   balance,
-  ethPrice
+  ethPrice,
+  shadowAccount
 }: Props) {
     return (
          <Dialog
@@ -52,6 +54,7 @@ export function SupplyModal({
                           client={client}
                           setUpdateCount={setUpdateCount}
                           ethPrice={ethPrice}
+                          shadowAccount={shadowAccount}
                         />
                       </div>
                     </DialogPanel>

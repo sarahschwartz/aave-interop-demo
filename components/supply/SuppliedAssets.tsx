@@ -25,6 +25,7 @@ interface Props {
   account: UseAccountReturnType<Config>;
   showSupplyModal: boolean;
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
+  shadowAccount: `0x${string}`;
 }
 
 export function SuppliedAssets({
@@ -40,6 +41,7 @@ export function SuppliedAssets({
   balance,
   ethPrice,
   account,
+  shadowAccount
 }: Props) {
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
 
@@ -164,6 +166,7 @@ export function SuppliedAssets({
         client={client}
         setUpdateCount={setUpdateCount}
         ethPrice={ethPrice}
+        shadowAccount={shadowAccount}
       />
     </div>
   );

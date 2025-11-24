@@ -16,6 +16,7 @@ interface Props {
   account: UseAccountReturnType<Config>;
   healthFactor?: number;
   ethPrice: number;
+  shadowAccount: `0x${string}`;
 }
 
 export function BorrowModal({
@@ -27,7 +28,8 @@ export function BorrowModal({
   account,
   setUpdateCount,
   healthFactor,
-  ethPrice
+  ethPrice,
+  shadowAccount
 }: Props) {
   return (
     <Dialog
@@ -62,6 +64,7 @@ export function BorrowModal({
                   setUpdateCount={setUpdateCount}
                   healthFactor={healthFactor}
                   ethPrice={ethPrice}
+                  shadowAccount={shadowAccount}
                 />
               )}
             </div>

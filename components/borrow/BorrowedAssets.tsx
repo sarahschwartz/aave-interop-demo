@@ -24,6 +24,7 @@ interface Props {
   showBorrowModal: boolean;
   setShowBorrowModal: Dispatch<SetStateAction<boolean>>;
   ethPrice: number;
+  shadowAccount: `0x${string}`;
 }
 
 export function BorrowedAssets({
@@ -38,7 +39,8 @@ export function BorrowedAssets({
   healthFactor,
   showBorrowModal,
   setShowBorrowModal,
-  ethPrice
+  ethPrice,
+  shadowAccount
 }: Props) {
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
 
@@ -139,6 +141,7 @@ const borrowPowerUsed =
         setUpdateCount={setUpdateCount}
         healthFactor={healthFactor}
         ethPrice={ethPrice}
+        shadowAccount={shadowAccount}
       />
     </div>
   );

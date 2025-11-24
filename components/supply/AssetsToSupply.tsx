@@ -20,6 +20,7 @@ interface Props {
   account: UseAccountReturnType<Config>;
   showSupplyModal: boolean;
   setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
+  shadowAccount: `0x${string}`;
 }
 
 export default function AssetsToSupply({
@@ -32,6 +33,7 @@ export default function AssetsToSupply({
   account,
   showSupplyModal,
   setShowSupplyModal,
+  shadowAccount
 }: Props) {
   const [showAssetsWith0Balance, setShowAssetsWith0Balance] =
     useState<boolean>(false);
@@ -146,6 +148,7 @@ export default function AssetsToSupply({
         client={client}
         setUpdateCount={setUpdateCount}
         ethPrice={ethPrice}
+        shadowAccount={shadowAccount}
       />
     </div>
   );

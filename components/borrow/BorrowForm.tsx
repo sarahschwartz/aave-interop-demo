@@ -1,8 +1,6 @@
 import { sendHashesForFinalization } from "@/utils/helpers";
 import {
   getBorrowBundle,
-  getShadowAccount,
-  getWithdrawEstimate,
   initWithdraw,
 } from "@/utils/txns";
 import { storeBorrowHashes } from "@/utils/storage";
@@ -13,8 +11,8 @@ import Spinner from "../ui/Spinner";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import Tooltip from "../ui/Tooltip";
 import { formatEther, parseEther } from "viem";
-import { estimateGas, writeContract } from "@wagmi/core";
-import { config, zksyncOSTestnet } from "@/utils/wagmi";
+import { writeContract } from "@wagmi/core";
+import { config } from "@/utils/wagmi";
 import { ErrorBox } from "@/components/ui/ErrorBox";
 import BorrowSuccessForm from "./BorrowSuccessForm";
 import { BlueInfoBox } from "../ui/BlueInfoBox";
@@ -35,6 +33,7 @@ type Props = {
   aaveData: AaveData;
   healthFactor?: number;
   ethPrice: number;
+  shadowAccount: `0x${string}`;
 };
 
 const ArrowRightIcon = (
@@ -52,6 +51,7 @@ export default function GHOBorrowForm({
   aaveData,
   healthFactor,
   ethPrice,
+  shadowAccount
 }: Props) {
   const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
@@ -105,7 +105,6 @@ export default function GHOBorrowForm({
     setIsPending(true);
 
     try {
-      const shadowAccount = await getShadowAccount(client, account.address!);
       const ghoAmount = parseEther(amount);
       const bundle = await getBorrowBundle(
         account,
@@ -150,7 +149,6 @@ export default function GHOBorrowForm({
           : e.target.value;
       setAmount(value);
       // if(!sdk || !client) return;
-      // const shadowAccount = await getShadowAccount(client, account.address!);
       // const ghoAmount = parseEther(value);
       // const bundle = await getBorrowBundle(account, shadowAccount, ghoAmount, client);
       // const withdrawGas = await getWithdrawEstimate(bundle.l1GasNeeded, sdk, shadowAccount);

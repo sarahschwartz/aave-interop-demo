@@ -1,5 +1,5 @@
 import { sendHashesForFinalization } from "@/utils/helpers";
-import { getDepositBundle, getShadowAccount, getWithdrawEstimate, initWithdraw } from "@/utils/txns";
+import { getDepositBundle, getWithdrawEstimate, initWithdraw } from "@/utils/txns";
 import { storeDepositHashes } from "@/utils/storage";
 import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
@@ -21,6 +21,7 @@ type Props = {
   account: UseAccountReturnType<Config>;
   balance: number | bigint;
   ethPrice: number;
+  shadowAccount: `0x${string}`;
 };
 
 export default function EthSupplyForm({
@@ -31,6 +32,7 @@ export default function EthSupplyForm({
   account,
   balance,
   ethPrice,
+  shadowAccount
 }: Props) {
   const [amount, setAmount] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean>(false);
@@ -64,7 +66,6 @@ export default function EthSupplyForm({
     setIsPending(true);
 
     try {
-      const shadowAccount = await getShadowAccount(client, account.address!);
       const wei = parseEther(amount);
       const bundle = await getDepositBundle(shadowAccount, wei);
       const wHash = await initWithdraw(account, wei, sdk, shadowAccount);
@@ -95,7 +96,6 @@ export default function EthSupplyForm({
       e.target.value > balance ? balance.toString() : e.target.value;
     setAmount(value);
       if(!sdk || !client) return;
-      const shadowAccount = await getShadowAccount(client, account.address!);
       const wei = parseEther(value);
       const withdrawGas = await getWithdrawEstimate(wei, sdk, shadowAccount);
       const bundle = await getDepositBundle(shadowAccount, wei);

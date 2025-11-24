@@ -8,17 +8,21 @@ export default function Stats({
   ghoBorrowed,
   isLoading,
   healthFactor,
+  shadowAccount,
+  copy
 }: {
   usdValue: number;
   ghoBorrowed: number;
   isLoading: boolean;
   healthFactor?: number;
+  shadowAccount?: string;
+  copy: () => void;
 }) {
   const netWorth = usdValue - ghoBorrowed;
   const netAPY = getNetAPY(usdValue, ghoBorrowed);
   return (
     <>
-      <Header />
+      <Header shadowAccount={shadowAccount} copy={copy} />
       <div className="mx-8 text-gray-400 text-sm flex gap-6 mt-4">
         <div>
           <div>Net Worth</div>

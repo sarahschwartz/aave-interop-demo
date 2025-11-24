@@ -24,6 +24,7 @@ interface Props {
   setShowBorrowModal: Dispatch<SetStateAction<boolean>>;
   ethPrice: number;
   available: string;
+  shadowAccount: `0x${string}`;
 }
 
 export default function AssetsToBorrow({
@@ -37,7 +38,8 @@ export default function AssetsToBorrow({
   showBorrowModal,
   setShowBorrowModal,
   ethPrice,
-  available
+  available,
+  shadowAccount
 }: Props) {
   const notAvailableToBorrow =
     !aaveData ||
@@ -119,6 +121,7 @@ export default function AssetsToBorrow({
         setUpdateCount={setUpdateCount}
         healthFactor={healthFactor}
         ethPrice={ethPrice}
+        shadowAccount={shadowAccount}
       />
     </div>
   );

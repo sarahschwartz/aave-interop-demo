@@ -36,7 +36,6 @@ import { getBalance } from "@wagmi/core";
 import {
   buildProjectedAaveDataFromHashes,
   computeCurrentHealthFactor,
-  computeProjectedHealthFactorAfterGhoBorrow,
   getBorrowedAmount,
   getFormattedETHUSD,
   getShadowAccountData,
@@ -55,6 +54,7 @@ export default function Home() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [updateCount, setUpdateCount] = useState<number>(1);
+  const [l1ShadowAccount, setL1ShadowAccount] = useState<string>();
   const [ethBalance, setEthBalance] = useState<string>();
   const [ghoBorrowed, setGhoBorrowed] = useState<string>("0.00");
   const [ghoAvailableToBorrow, setGhoAvailableToBorrow] =
@@ -66,6 +66,7 @@ export default function Home() {
   const [finalizingBorrows, setFinalizingBorrows] = useState<number>(0);
   const [sdk, setSdk] = useState<ViemSdk>();
   const [client, setClient] = useState<ViemClient>();
+  const [showCopied, setShowCopied] = useState(false);
 
   useEffect(() => {
     setHasMounted(true);
@@ -154,6 +155,8 @@ export default function Home() {
         setEthPrice(price);
 
         const shadowAccount = await getShadowAccount(client, account.address);
+        setL1ShadowAccount(shadowAccount);
+
         const data = await getShadowAccountData(client, shadowAccount);
         setAaveData(data);
 
@@ -251,6 +254,17 @@ export default function Home() {
     checkStatus();
   }, [sdk, client, hasMounted, updateCount, account]);
 
+
+  function copy() {
+        if (l1ShadowAccount){
+          navigator.clipboard.writeText(l1ShadowAccount);
+        setShowCopied(true);
+        setTimeout(() => {
+          setShowCopied(false);
+        }, 3000);
+      }
+    }
+
   return (
     <div className={`${inter.className} font-sans pb-12`}>
       <div className="border-b border-gray-700 flex align-middle gap-10 px-4">
@@ -278,6 +292,8 @@ export default function Home() {
                   usdValue={usdValue}
                   ghoBorrowed={parseFloat(ghoBorrowed)}
                   healthFactor={healthFactor}
+                  shadowAccount={l1ShadowAccount}
+                  copy={copy}
                 />
                 <SupplyAndBorrow
                   finalizingBorrows={finalizingBorrows}
@@ -309,6 +325,11 @@ export default function Home() {
           </div>
         )}
       </div>
+              <div className="w-full grid place-items-center">
+        <div id="toast" className={showCopied ? "show space-x-2 bg-white/20 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2 text-white" : ""}>
+          Copied tx hash to clipboard
+        </div>
+        </div>
     </div>
   );
 }
