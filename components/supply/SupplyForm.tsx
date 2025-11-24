@@ -1,5 +1,5 @@
 import { sendHashesForFinalization } from "@/utils/helpers";
-import { getDepositBundle, getShadowAccount, initWithdraw } from "@/utils/txns";
+import { getDepositBundle, getShadowAccount, getWithdrawEstimate, initWithdraw } from "@/utils/txns";
 import { storeDepositHashes } from "@/utils/storage";
 import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
 import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
@@ -8,9 +8,9 @@ import SupplySuccessForm from "./SupplySuccessForm";
 import Spinner from "../ui/Spinner";
 import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
 import Tooltip from "../ui/Tooltip";
-import { parseEther } from "viem";
-import { writeContract } from "@wagmi/core";
-import { config } from "@/utils/wagmi";
+import { formatEther, parseEther } from "viem";
+import { estimateGas, writeContract } from "@wagmi/core";
+import { config, zksyncOSTestnet } from "@/utils/wagmi";
 import { ErrorBox } from "@/components/ui/ErrorBox";
 
 type Props = {
@@ -37,7 +37,7 @@ export default function EthSupplyForm({
   const [isError, setIsError] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [hashes, setHashes] = useState<[`0x${string}`, `0x${string}`]>();
-  // const [gasEstimate, setGasEstimate] = useState<bigint>();
+  const [gasEstimate, setGasEstimate] = useState<string>();
 
   const amountNumber = useMemo(
     () => Number(amount.replace(/,/g, "")) || 0,
@@ -66,8 +66,8 @@ export default function EthSupplyForm({
     try {
       const shadowAccount = await getShadowAccount(client, account.address!);
       const wei = parseEther(amount);
-      const wHash = await initWithdraw(account, wei, sdk, shadowAccount);
       const bundle = await getDepositBundle(shadowAccount, wei);
+      const wHash = await initWithdraw(account, wei, sdk, shadowAccount);
       const bHash = await writeContract(config, bundle);
 
       if (!wHash || !bHash) {
@@ -89,16 +89,30 @@ export default function EthSupplyForm({
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function handleChange(e: any) {
+  async function handleChange(e: any) {
+    try{
     const value =
       e.target.value > balance ? balance.toString() : e.target.value;
     setAmount(value);
-    //
-    //   if(!sdk) return;
-    //   const quote = await estimateGas(account, parseEther(value), sdk);
-    //   if(quote?.suggestedL2GasLimit){
-    //     setGasEstimate(quote.suggestedL2GasLimit);
-    //   }
+      if(!sdk || !client) return;
+      const shadowAccount = await getShadowAccount(client, account.address!);
+      const wei = parseEther(value);
+      const withdrawGas = await getWithdrawEstimate(wei, sdk, shadowAccount);
+      const bundle = await getDepositBundle(shadowAccount, wei);
+      const bundleGas = await estimateGas(config, {...bundle, chainId: zksyncOSTestnet.id});
+      const totalGas = withdrawGas + bundleGas;
+      const gasPrice = await client.l1.getGasPrice();
+      const totalWei = totalGas * gasPrice;
+      const ethCost = Number(formatEther(totalWei));
+      const usd = ethCost * ethPrice;
+      if(usd < 0.01){
+        setGasEstimate("< $ 0.01");
+      } else {
+        setGasEstimate(usd.toFixed(2));
+      }
+    } catch (e){
+      console.log('Something wrong in amount input', e);
+    }
   }
 
   return (
@@ -220,7 +234,7 @@ export default function EthSupplyForm({
             <div className="text-white pt-6 flex items-center gap-1">
               <LocalGasStationIcon color="inherit" sx={{ fontSize: "16px" }} />
               <div className="text-gray-400 text-[12px]">
-                {amountIsGreaterThanZero ? "< $ 0.01" : "-"}
+                {amountIsGreaterThanZero && gasEstimate ? gasEstimate : "-"}
               </div>
               {amountIsGreaterThanZero && (
                 <Tooltip

@@ -1,20 +1,21 @@
 import { ETH_ADDRESS } from "@dutterbutter/zksync-sdk/core";
 import { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
-import { encodeFunctionData, Abi } from "viem";
+import { encodeFunctionData, Abi, parseEther } from "viem";
 import { sepolia } from "viem/chains";
 import { UseAccountReturnType, Config } from "wagmi";
 import { CONTRACT_ADDRESSES } from "./constants";
 import { DataEncoding } from "./data-encoding";
 import { checkChainId } from "./helpers";
-import { zksyncOSTestnet } from "./wagmi";
+import { config, zksyncOSTestnet } from "./wagmi";
 
 import I_WRAPPED_TOKEN_JSON from "@/utils/abis/IWrappedTokenGatewayV3.json";
 import I_POOL_JSON from "@/utils/abis/IPool.json";
 import I_ERC20_JSON from "@/utils/abis/IERC20.json";
 import I_L1_BRIDGEHUB_JSON from "@/utils/abis/IL1Bridgehub.json";
-import I_MAILBOX_IMPL_JSON from "@/utils/abis/IMailboxImpl.json";
+// import I_MAILBOX_IMPL_JSON from "@/utils/abis/IMailboxImpl.json";
 import L2_INTEROP_CENTER_JSON from "@/utils/abis/L2InteropCenter.json";
 import { ShadowAccountOp } from "./types";
+import { estimateGas } from "@wagmi/core";
 
 export async function getShadowAccount(
   client: ViemClient,
@@ -82,17 +83,20 @@ export async function getBorrowBundle(
   const l2GasLimit = BigInt(5_000_000);
   const l2GasPerPubdataByteLimit = BigInt(800);
 
-  const baseCost = await client.l1.readContract({
-    address: CONTRACT_ADDRESSES.chainMailBoxAddress,
-    abi: I_MAILBOX_IMPL_JSON.abi as Abi,
-    functionName: "l2TransactionBaseCost",
-    args: [gasPrice, l2GasLimit, l2GasPerPubdataByteLimit],
-  });
+  // TODO: figure out correct calculation - this one returns a value that's too high
+  // const baseCost = await client.l1.readContract({
+  //   address: CONTRACT_ADDRESSES.chainMailBoxAddress,
+  //   abi: I_MAILBOX_IMPL_JSON.abi as Abi,
+  //   functionName: "l2TransactionBaseCost",
+  //   args: [gasPrice, l2GasLimit, l2GasPerPubdataByteLimit],
+  // });
 
-  console.log('basecost:', baseCost)
+  // console.log('basecost:', baseCost)
 
-  const mintValue =
-    typeof baseCost === "bigint" ? baseCost + BigInt(1_000) : BigInt(5_000_000_000_000_000);
+  // const mintValue =
+  //   typeof baseCost === "bigint" ? baseCost + BigInt(1_000) : BigInt(5_000_000_000_000_000);
+  console.log("L1 Gas Price", gasPrice);
+  const mintValue = parseEther("0.00135");
 
   const ghoTokenAssetId = DataEncoding.encodeNTVAssetId(
     BigInt(sepolia.id),
@@ -144,13 +148,38 @@ export async function getBorrowBundle(
 
   return {
     bundle: {
-    address: CONTRACT_ADDRESSES.deployedL2InteropCenter,
-    abi: L2_INTEROP_CENTER_JSON.abi as Abi,
-    functionName: "sendBundleToL1",
-    args: [ops],
-  },
-  l1GasNeeded: mintValue
-};
+      address: CONTRACT_ADDRESSES.deployedL2InteropCenter,
+      abi: L2_INTEROP_CENTER_JSON.abi as Abi,
+      functionName: "sendBundleToL1",
+      args: [ops],
+    },
+    l1GasNeeded: mintValue,
+  };
+}
+
+export function getWithdrawParams(
+  amount: bigint,
+  shadowAccount: `0x${string}`
+) {
+  return {
+    token: ETH_ADDRESS,
+    amount,
+    to: shadowAccount as `0x${string}`,
+  } as const;
+}
+
+export async function getWithdrawEstimate(
+  amount: bigint,
+  sdk: ViemSdk,
+  shadowAccount: `0x${string}`
+) {
+  const params = getWithdrawParams(amount, shadowAccount);
+  const prepared = await sdk.withdrawals.prepare(params);
+  const estimate = await estimateGas(config, {
+    ...prepared,
+    chainId: zksyncOSTestnet.id,
+  });
+  return estimate;
 }
 
 export async function initWithdraw(
@@ -162,11 +191,7 @@ export async function initWithdraw(
   try {
     await checkChainId(account);
 
-    const params = {
-      token: ETH_ADDRESS,
-      amount,
-      to: shadowAccount as `0x${string}`,
-    } as const;
+    const params = getWithdrawParams(amount, shadowAccount);
 
     console.log("creating withdraw txn...");
     const created = await sdk.withdrawals.create(params);

@@ -62,7 +62,7 @@ const borrowPowerUsed =
               </div>
               <div className={statsStyles + " flex items-center gap-1"}>
                 <span>
-                  APY <span className="text-white">0</span> %
+                  APY <span className="text-white">2.02</span> %
                 </span>{" "}
                 <Tooltip text="The weighted average of APY for all supplied assets, including incentives." />
               </div>

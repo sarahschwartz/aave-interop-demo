@@ -15,8 +15,6 @@ export default function BorrowSuccessForm({
   hashes,
   amount,
 }: Props) {
-  console.log('hashes', hashes)
-
   const { data: walletClient } = useWalletClient();
 
   async function addGHOTokenToWallet(){

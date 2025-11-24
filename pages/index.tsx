@@ -165,15 +165,14 @@ export default function Home() {
 
         if (!hashes.borrows || hashes.borrows.length === 0) {
           const borrowed =
-            aaveData && aaveData.totalDebtBase
+            data && data.totalDebtBase
               ? parseFloat(
-                  (aaveData.totalDebtBase / BigInt(100_000_000)).toString()
+                  (data.totalDebtBase / BigInt(100_000_000)).toString()
                 ).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })
               : "0.00";
-              console.log("borrowed", borrowed)
           setGhoBorrowed(borrowed);
         } else {
           const borrowSummary = await getAaveBorrowsSummary(
@@ -183,13 +182,14 @@ export default function Home() {
             client
           );
 
+
           const finalizingAmount =
             borrowSummary.totalWeiFinalizing / BigInt(10_000_000_000);
           const borrowed =
-            aaveData && aaveData.totalDebtBase
+            data && data.totalDebtBase
               ? parseFloat(
                   (
-                    (aaveData.totalDebtBase + finalizingAmount) /
+                    (data.totalDebtBase + finalizingAmount) /
                     BigInt(100_000_000)
                   ).toString()
                 ).toLocaleString(undefined, {

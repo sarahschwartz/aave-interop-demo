@@ -6,12 +6,25 @@ import {
   SkeletonButtons,
 } from "../ui/SkeletonSupplies";
 import { tableHeaderStyle } from "@/utils/constants";
+import { SupplyModal } from "./SupplyModal";
+import { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import { Dispatch, SetStateAction } from "react";
+import { Balance } from "@/utils/types";
+import { Config, UseAccountReturnType } from "wagmi";
 
 interface Props {
   isLoading: boolean;
   finalizingDeposits: number;
   ethBalance: string;
   usdValue: number;
+  sdk?: ViemSdk;
+  client?: ViemClient;
+  setUpdateCount: Dispatch<SetStateAction<number>>;
+  balance: Balance | undefined;
+  ethPrice: number;
+  account: UseAccountReturnType<Config>;
+  showSupplyModal: boolean;
+  setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
 }
 
 export function SuppliedAssets({
@@ -19,18 +32,25 @@ export function SuppliedAssets({
   finalizingDeposits,
   ethBalance,
   usdValue,
+  sdk,
+  client,
+  setUpdateCount,
+  setShowSupplyModal,
+  showSupplyModal,
+  balance,
+  ethPrice,
+  account,
 }: Props) {
-
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
 
   const pendingText = `${finalizingDeposits} Aave ${
     finalizingDeposits === 1 ? "deposit" : "deposits"
   } still finalizing. This usually takes ~5 minutes.`;
 
-  const formattedUsd =usdValue.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })
+  const formattedUsd = usdValue.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div>
@@ -51,7 +71,8 @@ export function SuppliedAssets({
               </div>
               <div className={statsStyles + " flex items-center gap-1"}>
                 <span>
-                  Collateral $ <span className="text-white">{formattedUsd}</span>
+                  Collateral ${" "}
+                  <span className="text-white">{formattedUsd}</span>
                 </span>{" "}
                 <Tooltip text="The total amount of your assets denominated in USD that can be used as collateral for borrowing assets." />
               </div>
@@ -118,7 +139,10 @@ export function SuppliedAssets({
                   <div className="text-xs">{pendingText}</div>
                 ) : (
                   <div className="flex justify-end gap-2">
-                    <button className="cursor-pointer bg-white text-black p-2 rounded-md text-sm">
+                    <button
+                      onClick={() => setShowSupplyModal(true)}
+                      className="cursor-pointer bg-white text-black p-2 rounded-md text-sm"
+                    >
                       Supply
                     </button>
                     <button className="cursor-pointer border border-gray-600 hover:border-gray-300 bg-gray-700 py-2 px-4 rounded-md text-sm">
@@ -131,6 +155,16 @@ export function SuppliedAssets({
           </div>
         </div>
       )}
+      <SupplyModal
+        balance={parseFloat(balance?.formatted || "0.00")}
+        setShowSupplyModal={setShowSupplyModal}
+        showSupplyModal={showSupplyModal}
+        account={account}
+        sdk={sdk}
+        client={client}
+        setUpdateCount={setUpdateCount}
+        ethPrice={ethPrice}
+      />
     </div>
   );
 }

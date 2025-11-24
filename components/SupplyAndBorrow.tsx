@@ -1,11 +1,11 @@
 import StyledToggleGroup from "@/components/ui/StyledToggleGroup";
 import StyledToggleButton from "@/components/ui/StyledToggleButton";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import AssetsToSupply from "./supply/AssetsToSupply";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import { SuppliedAssets } from "./supply/SuppliedAssets";
-import { UseAccountReturnType, Config } from "wagmi";
+import { UseAccountReturnType, Config, useBalance } from "wagmi";
 import AssetsToBorrow from "./borrow/AssetsToBorrow";
 import { AaveData } from "@/utils/types";
 import { BorrowedAssets } from "./borrow/BorrowedAssets";
@@ -41,7 +41,7 @@ export default function SupplyAndBorrow({
   account,
   aaveData,
   healthFactor,
-  ghoBorrowed
+  ghoBorrowed,
 }: Props) {
   const [mode, setMode] = useState<"supply" | "borrow" | "">("supply");
   const [assetsToSupplyCollapsed, setAssetsToSupplyCollapsed] =
@@ -52,7 +52,16 @@ export default function SupplyAndBorrow({
     useState<boolean>(false);
   const [borrowedAssetsCollapsed, setBorrowedAssetsCollapsed] =
     useState<boolean>(false);
+
+  const [showSupplyModal, setShowSupplyModal] = useState<boolean>(false);
+
   const [showBorrowModal, setShowBorrowModal] = useState<boolean>(false);
+
+  const { data: balance, refetch } = useBalance({ address: account?.address });
+
+  useEffect(() => {
+    refetch();
+  }, [updateCount, refetch]);
 
   const { breakpoints } = useTheme();
   const isDesktop = useMediaQuery(breakpoints.up(1260));
@@ -143,6 +152,14 @@ export default function SupplyAndBorrow({
                 finalizingDeposits={finalizingDeposits}
                 ethBalance={ethBalance}
                 usdValue={usdValue}
+                sdk={sdk}
+                client={client}
+                setUpdateCount={setUpdateCount}
+                ethPrice={ethPrice}
+                account={account}
+                balance={balance}
+                showSupplyModal={showSupplyModal}
+                setShowSupplyModal={setShowSupplyModal}
               />
             )}
           </div>
@@ -168,10 +185,12 @@ export default function SupplyAndBorrow({
                 sdk={sdk}
                 client={client}
                 setUpdateCount={setUpdateCount}
-                updateCount={updateCount}
                 ethPrice={ethPrice}
                 isLoading={isLoading}
                 account={account}
+                balance={balance}
+                showSupplyModal={showSupplyModal}
+                setShowSupplyModal={setShowSupplyModal}
               />
             )}
           </div>
@@ -190,7 +209,7 @@ export default function SupplyAndBorrow({
             style={{ backgroundColor: "var(--container)" }}
           >
             <div className="flex justify-between">
-              <h3 className="font-bold text-lg">Assets to borrow</h3>
+              <h3 className="font-bold text-lg">Your borrows</h3>
               <Box
                 sx={() => collapseStyles(assetsToBorrowCollapsed)}
                 onClick={() =>
@@ -222,7 +241,7 @@ export default function SupplyAndBorrow({
             style={{ backgroundColor: "var(--container)" }}
           >
             <div className="flex justify-between">
-              <h3 className="font-bold text-lg">Your borrows</h3>
+              <h3 className="font-bold text-lg">Assets to borrow</h3>
               <Box
                 sx={() => collapseStyles(borrowedAssetsCollapsed)}
                 onClick={() =>

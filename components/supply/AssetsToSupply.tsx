@@ -1,7 +1,5 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Config, UseAccountReturnType, useBalance } from "wagmi";
-import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
-import SupplyForm from "./SupplyForm";
+import { Dispatch, SetStateAction, useState } from "react";
+import { Config, UseAccountReturnType } from "wagmi";
 import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
 import {
   SkeletonAsset,
@@ -9,34 +7,34 @@ import {
   SkeletonButtons,
 } from "../ui/SkeletonSupplies";
 import { tableHeaderStyle } from "@/utils/constants";
+import { SupplyModal } from "./SupplyModal";
+import { Balance } from "@/utils/types";
 
 interface Props {
   sdk?: ViemSdk;
   client?: ViemClient;
   setUpdateCount: Dispatch<SetStateAction<number>>;
-  updateCount: number;
+  balance: Balance | undefined;
   ethPrice: number;
   isLoading: boolean;
   account: UseAccountReturnType<Config>;
+  showSupplyModal: boolean;
+  setShowSupplyModal: Dispatch<SetStateAction<boolean>>;
 }
 
 export default function AssetsToSupply({
   sdk,
   client,
   setUpdateCount,
-  updateCount,
+  balance,
   ethPrice,
   isLoading,
-  account
+  account,
+  showSupplyModal,
+  setShowSupplyModal,
 }: Props) {
   const [showAssetsWith0Balance, setShowAssetsWith0Balance] =
     useState<boolean>(false);
-  const [showSupplyModal, setShowSupplyModal] = useState<boolean>(false);
-  const { data, refetch } = useBalance({ address: account?.address });
-
-  useEffect(() => {
-    refetch();
-  }, [updateCount, refetch]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (e: any) => {
@@ -50,7 +48,7 @@ export default function AssetsToSupply({
 
   return (
     <div>
-      {data?.value === BigInt(0) ? (
+      {balance?.value === BigInt(0) ? (
         <div className="flex gap-3 items-center bg-[#071f2e] p-3 rounded-sm mt-6">
           <span
             aria-hidden
@@ -106,7 +104,7 @@ export default function AssetsToSupply({
             {isLoading ? (
               <SkeletonBasic />
             ) : (
-              <div>{data?.formatted.slice(0, 8)}</div>
+              <div>{balance?.formatted.slice(0, 8)}</div>
             )}
 
             {isLoading ? <SkeletonBasic /> : <div>0%</div>}
@@ -139,38 +137,16 @@ export default function AssetsToSupply({
         </>
       )}
 
-      <Dialog
-        open={showSupplyModal}
-        onClose={setShowSupplyModal}
-        className="relative z-10"
-      >
-        <DialogBackdrop
-          transition
-          className="fixed inset-0 bg-black/50 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
-        />
-
-        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <DialogPanel
-              transition
-              style={{ backgroundColor: "#292e41" }}
-              className="text-white relative transform overflow-hidden rounded-sm text-left shadow-xl outline -outline-offset-1 outline-white/10 transition-all data-closed:translate-y-4 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in sm:my-8 w-[420px] data-closed:sm:translate-y-0 data-closed:sm:scale-95"
-            >
-              <div className="px-6 py-4">
-                <SupplyForm
-                  balance={parseFloat(data?.formatted || "0.00")}
-                  setShowSupplyModal={setShowSupplyModal}
-                  account={account}
-                  sdk={sdk}
-                  client={client}
-                  setUpdateCount={setUpdateCount}
-                  ethPrice={ethPrice}
-                />
-              </div>
-            </DialogPanel>
-          </div>
-        </div>
-      </Dialog>
+      <SupplyModal
+        balance={parseFloat(balance?.formatted || "0.00")}
+        setShowSupplyModal={setShowSupplyModal}
+        showSupplyModal={showSupplyModal}
+        account={account}
+        sdk={sdk}
+        client={client}
+        setUpdateCount={setUpdateCount}
+        ethPrice={ethPrice}
+      />
     </div>
   );
 }

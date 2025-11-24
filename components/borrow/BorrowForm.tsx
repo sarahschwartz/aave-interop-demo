@@ -100,14 +100,12 @@ export default function GHOBorrowForm({
     try {
       const shadowAccount = await getShadowAccount(client, account.address!);
       const ghoAmount = parseEther(amount);
-      console.log("ghoAmount", ghoAmount);
       const bundle = await getBorrowBundle(
         account,
         shadowAccount,
         ghoAmount,
         client
       );
-      console.log("got bundle");
       // withdraw gas for L1
       const wHash = await initWithdraw(
         account,
