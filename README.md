@@ -47,6 +47,9 @@ npx @upstash/qstash-cli@latest dev
 
 Make sure you are on the ZKsync OS testnet network in your wallet before connecting, and have some sepolia ETH bridged over.
 
+Note that this app currently only support supplying ETH and borrowing GHO.
+The ability to repay borrowed assets or withdraw supplied ETH isn't yet supported in this frontend.
+
 ### Troubleshooting
 
 If the borrow transaction fails during finalization, it's probably because the gas is currently hardcoded for bridging the GHO tokens to L2.
