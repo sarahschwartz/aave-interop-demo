@@ -1,7 +1,7 @@
 import { sendHashesForFinalization } from "@/utils/helpers";
 import { getDepositBundle, getWithdrawEstimate, initWithdraw } from "@/utils/txns";
 import { storeDepositHashes } from "@/utils/storage";
-import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemClient, ViemSdk } from "@matterlabs/zksync-js/viem";
 import React, { Dispatch, SetStateAction, useMemo, useState } from "react";
 import { UseAccountReturnType, type Config } from "wagmi";
 import SupplySuccessForm from "./SupplySuccessForm";

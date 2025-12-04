@@ -1,4 +1,4 @@
-import type { Address, Hash, Hex } from "@dutterbutter/zksync-sdk";
+import type { Address, Hash, Hex } from "@matterlabs/zksync-js";
 
 export type HashItem = {
   withdrawHash: Hash;

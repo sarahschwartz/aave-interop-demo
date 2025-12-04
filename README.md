@@ -4,6 +4,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Add ZKsync OS Testnet to your wallet
+
+Follow the instructions in the [ZKsync OS network details](https://docs.zksync.io/zksync-network/zksync-os/network-details) docs.
+
+#### Bridge some ETH to the testnet
+
+Either use the [ZKsync OS testnet portal](https://zksync-os.portal.zksync.io/bridge), or follow the instructions [here](https://docs.zksync.io/zksync-network/zksync-os/network-details).
+
 ### Install the dependencies
 
 ```bash
@@ -14,7 +22,9 @@ bun install
 
 Use the template in `.env.example`
 
-The private key should have funds on Sepolia L1.
+The private key should have some ETH on Sepolia L1.
+This is used to finalize the transactions on L1.
+
 You can get Qstash vars by signing up for a free account on [Upstash](https://console.upstash.com/).
 
 For the L1 RPC URL, use [Infura](https://www.infura.io/).
@@ -32,3 +42,12 @@ bun dev
 ```bash
 npx @upstash/qstash-cli@latest dev
 ```
+
+## Trying out the app
+
+Make sure you are on the ZKsync OS testnet network in your wallet before connecting, and have some sepolia ETH bridged over.
+
+### Troubleshooting
+
+If the borrow transaction fails during finalization, it's probably because the gas is currently hardcoded for bridging the GHO tokens to L2.
+You can fix this by increasing the `mintValue` in the `getBorrowBundle` method in `utils/txns.ts`.

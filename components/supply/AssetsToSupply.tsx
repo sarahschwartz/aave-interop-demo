@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import { Config, UseAccountReturnType } from "wagmi";
-import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemSdk, ViemClient } from "@matterlabs/zksync-js/viem";
 import {
   SkeletonAsset,
   SkeletonBasic,

@@ -7,7 +7,7 @@ import {
 } from "../ui/SkeletonSupplies";
 import { tableHeaderStyle } from "@/utils/constants";
 import { SupplyModal } from "./SupplyModal";
-import { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import { ViemClient, ViemSdk } from "@matterlabs/zksync-js/viem";
 import { Dispatch, SetStateAction } from "react";
 import { Balance } from "@/utils/types";
 import { Config, UseAccountReturnType } from "wagmi";

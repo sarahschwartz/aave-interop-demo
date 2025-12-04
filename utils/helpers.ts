@@ -1,8 +1,8 @@
-import { ETH_ADDRESS } from "@dutterbutter/zksync-sdk/core";
+import { ETH_ADDRESS } from "@matterlabs/zksync-js/core";
 import { zksyncOSTestnet } from "./wagmi";
 import { type EIP1193Provider } from "viem";
 import { UseAccountReturnType, Config } from "wagmi";
-import { type ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import { type ViemSdk } from "@matterlabs/zksync-js/viem";
 
 export async function estimateGas(
   account: UseAccountReturnType<Config>,

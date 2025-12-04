@@ -1,7 +1,7 @@
 import { CONTRACT_ADDRESSES, GREEN_TEXT } from "./constants";
 import I_POOL_JSON from "@/utils/abis/IPool.json";
 import { type Abi } from "viem";
-import { ViemClient } from "@dutterbutter/zksync-sdk/viem";
+import { ViemClient } from "@matterlabs/zksync-js/viem";
 import type { AaveData, Summary } from "./types";
 
 const oracleAbi = [

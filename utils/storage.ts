@@ -1,6 +1,6 @@
-import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemSdk, ViemClient } from "@matterlabs/zksync-js/viem";
 import type { Summary, HashItem, ShadowAccountOp } from "./types";
-import type { Hash, Hex } from "@dutterbutter/zksync-sdk";
+import type { Hash, Hex } from "@matterlabs/zksync-js";
 import { decodeFunctionData } from "viem";
 import { CONTRACT_ADDRESSES } from "./constants";
 import I_POOL_JSON from "@/utils/abis/IPool.json";

@@ -3,7 +3,7 @@ import StyledToggleButton from "@/components/ui/StyledToggleButton";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import AssetsToSupply from "./supply/AssetsToSupply";
-import type { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemSdk, ViemClient } from "@matterlabs/zksync-js/viem";
 import { SuppliedAssets } from "./supply/SuppliedAssets";
 import { UseAccountReturnType, Config, useBalance } from "wagmi";
 import AssetsToBorrow from "./borrow/AssetsToBorrow";

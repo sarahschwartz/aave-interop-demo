@@ -1,7 +1,7 @@
 import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
 import { Dispatch, SetStateAction } from "react";
 import SupplyForm from "./SupplyForm";
-import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemClient, ViemSdk } from "@matterlabs/zksync-js/viem";
 import { Config, UseAccountReturnType } from "wagmi";
 
 interface Props {

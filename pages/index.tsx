@@ -21,7 +21,7 @@ import {
   createViemSdk,
   type ViemClient,
   type ViemSdk,
-} from "@dutterbutter/zksync-sdk/viem";
+} from "@matterlabs/zksync-js/viem";
 import { sepolia } from "viem/chains";
 import { ConnectWalletPaper } from "@/components/ui/ConnectWalletPaper";
 import { SvgIcon } from "@mui/material";

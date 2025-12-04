@@ -5,11 +5,11 @@
       "name": "aave-interop-demo",
       "dependencies": {
         "@aave/math-utils": "^1.36.2",
-        "@dutterbutter/zksync-sdk": "^0.0.12-alpha",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@headlessui/react": "^2.2.9",
         "@heroicons/react": "^1.0.6",
+        "@matterlabs/zksync-js": "^0.0.1",
         "@mui/icons-material": "^7.3.5",
         "@mui/material": "^7.3.5",
         "@tanstack/react-query": "^5.90.7",
@@ -79,8 +79,6 @@
     "@coinbase/cdp-sdk": ["@coinbase/cdp-sdk@1.38.5", "", { "dependencies": { "@solana-program/system": "^0.8.0", "@solana-program/token": "^0.6.0", "@solana/kit": "^3.0.3", "@solana/web3.js": "^1.98.1", "abitype": "1.0.6", "axios": "^1.12.2", "axios-retry": "^4.5.0", "jose": "^6.0.8", "md5": "^2.3.0", "uncrypto": "^0.1.3", "viem": "^2.21.26", "zod": "^3.24.4" } }, "sha512-j8mvx1wMox/q2SjB7C09HtdRXVOpGpfkP7nG4+OjdowPj8pmQ03rigzycd86L8mawl6TUPXdm41YSQVmtc8SzQ=="],
 
     "@coinbase/wallet-sdk": ["@coinbase/wallet-sdk@4.3.6", "", { "dependencies": { "@noble/hashes": "1.4.0", "clsx": "1.2.1", "eventemitter3": "5.0.1", "idb-keyval": "6.2.1", "ox": "0.6.9", "preact": "10.24.2", "viem": "^2.27.2", "zustand": "5.0.3" } }, "sha512-4q8BNG1ViL4mSAAvPAtpwlOs1gpC+67eQtgIwNvT3xyeyFFd+guwkc8bcX5rTmQhXpqnhzC4f0obACbP9CqMSA=="],
-
-    "@dutterbutter/zksync-sdk": ["@dutterbutter/zksync-sdk@0.0.12-alpha", "", { "dependencies": { "@noble/hashes": "^1.8.0" }, "peerDependencies": { "@typechain/ethers-v6": "^0.5.0", "ethers": "^6.15.0", "viem": ">=2.0.0 <3" }, "optionalPeers": ["@typechain/ethers-v6", "ethers", "viem"] }, "sha512-yfwxPSiXvGWc0Tj/vt6aKllE9jhiZ8kRAiSK9GzpzblOqdzVzCXqO25JbbLQAsRZVb7HffQbJsCxSB9VNmmirQ=="],
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.5", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-GalEZH4JgOMHYYcYmVqnFirFsjZHeoGMDt9IxEnM9F7GRUUyUksJ7Ou53L83WHJq3RWKD3AcBpo0iQh0oMpf8A=="],
 
@@ -225,6 +223,8 @@
     "@lit-labs/ssr-dom-shim": ["@lit-labs/ssr-dom-shim@1.4.0", "", {}, "sha512-ficsEARKnmmW5njugNYKipTm4SFnbik7CXtoencDZzmzo/dQ+2Q0bgkzJuoJP20Aj0F+izzJjOqsnkd6F/o1bw=="],
 
     "@lit/reactive-element": ["@lit/reactive-element@2.1.1", "", { "dependencies": { "@lit-labs/ssr-dom-shim": "^1.4.0" } }, "sha512-N+dm5PAYdQ8e6UlywyyrgI2t++wFGXfHx+dSJ1oBrg6FAxUj40jId++EaRm80MKX5JnlH1sBsyZ5h0bcZKemCg=="],
+
+    "@matterlabs/zksync-js": ["@matterlabs/zksync-js@0.0.1", "", { "dependencies": { "@noble/hashes": "^1.8.0" }, "peerDependencies": { "@typechain/ethers-v6": "^0.5.0", "ethers": "^6.15.0", "viem": ">=2.0.0 <3" }, "optionalPeers": ["@typechain/ethers-v6", "ethers", "viem"] }, "sha512-su/ZDdFgTd1R4m/DDb7FSw1kx9wrrXnFQ7NY+ZushKWK1aBzzwSgZL0ljrX8qo/TA940qBDfxUp2k5FqLW9Pnw=="],
 
     "@metamask/eth-json-rpc-provider": ["@metamask/eth-json-rpc-provider@1.0.1", "", { "dependencies": { "@metamask/json-rpc-engine": "^7.0.0", "@metamask/safe-event-emitter": "^3.0.0", "@metamask/utils": "^5.0.1" } }, "sha512-whiUMPlAOrVGmX8aKYVPvlKyG4CpQXiNNyt74vE1xb5sPvmx5oA7B/kOi/JdBvhGQq97U1/AVdXEdk2zkP8qyA=="],
 

@@ -3,7 +3,7 @@ import { Dispatch, SetStateAction } from "react";
 import { ErrorBox } from "../ui/ErrorBox";
 import BorrowForm from "./BorrowForm";
 import type { AaveData } from "@/utils/types";
-import type { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import type { ViemClient, ViemSdk } from "@matterlabs/zksync-js/viem";
 import { Config, UseAccountReturnType } from "wagmi";
 
 interface Props {

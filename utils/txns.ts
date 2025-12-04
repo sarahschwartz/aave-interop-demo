@@ -1,5 +1,5 @@
-import { ETH_ADDRESS } from "@dutterbutter/zksync-sdk/core";
-import { ViemClient, ViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import { ETH_ADDRESS } from "@matterlabs/zksync-js/core";
+import { ViemClient, ViemSdk } from "@matterlabs/zksync-js/viem";
 import { encodeFunctionData, Abi, parseEther } from "viem";
 import { sepolia } from "viem/chains";
 import { UseAccountReturnType, Config } from "wagmi";
@@ -96,7 +96,7 @@ export async function getBorrowBundle(
   // const mintValue =
   //   typeof baseCost === "bigint" ? baseCost + BigInt(1_000) : BigInt(5_000_000_000_000_000);
   console.log("L1 Gas Price", gasPrice);
-  const mintValue = parseEther("0.00135");
+  const mintValue = parseEther("0.0015");
 
   const ghoTokenAssetId = DataEncoding.encodeNTVAssetId(
     BigInt(sepolia.id),

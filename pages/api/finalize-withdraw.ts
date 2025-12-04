@@ -1,5 +1,5 @@
 import { zksyncOSTestnet } from "@/utils/wagmi";
-import { createViemClient, createViemSdk } from "@dutterbutter/zksync-sdk/viem";
+import { createViemClient, createViemSdk } from "@matterlabs/zksync-js/viem";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
   type Abi,

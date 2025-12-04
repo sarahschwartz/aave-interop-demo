@@ -7,7 +7,7 @@ import {
 import { tableHeaderStyle } from "@/utils/constants";
 import type { AaveData } from "@/utils/types";
 import { BorrowModal } from "./BorrowModal";
-import { ViemSdk, ViemClient } from "@dutterbutter/zksync-sdk/viem";
+import { ViemSdk, ViemClient } from "@matterlabs/zksync-js/viem";
 import { Dispatch, SetStateAction } from "react";
 import { UseAccountReturnType, Config } from "wagmi";
 
@@ -43,6 +43,7 @@ export function BorrowedAssets({
   shadowAccount
 }: Props) {
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
+  console.log('finalizingBorrows', finalizingBorrows, ghoBorrowed)
 
   const pendingText = `${finalizingBorrows} Aave ${
     finalizingBorrows === 1 ? "borrow" : "borrows"
