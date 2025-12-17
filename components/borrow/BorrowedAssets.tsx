@@ -43,7 +43,6 @@ export function BorrowedAssets({
   shadowAccount
 }: Props) {
   const statsStyles = "p-0.5 border border-gray-600 rounded-sm";
-  console.log('finalizingBorrows', finalizingBorrows, ghoBorrowed)
 
   const pendingText = `${finalizingBorrows} Aave ${
     finalizingBorrows === 1 ? "borrow" : "borrows"

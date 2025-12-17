@@ -27,6 +27,8 @@ const l1AssetRouterAddress: `0x${string}` =
   "0xB5d9C3F41E434b91295BD7962db5c873cEcCE2be";
 const chainMailBoxAddress: `0x${string}` =
   "0x02B1ac1Cf0A592aefD3C2246B2431388365dB272";
+  const stataWeth: `0x${string}` = "0x162B500569F42D9eCe937e6a61EDfef660A12E98";
+
 
 export const CONTRACT_ADDRESSES = {
   deployedL2InteropCenter,
@@ -41,4 +43,5 @@ export const CONTRACT_ADDRESSES = {
   bridgehubAddress,
   l1AssetRouterAddress,
   chainMailBoxAddress,
+  stataWeth
 };

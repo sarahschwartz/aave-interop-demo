@@ -14,6 +14,7 @@ import I_ERC20_JSON from "@/utils/abis/IERC20.json";
 import I_L1_BRIDGEHUB_JSON from "@/utils/abis/IL1Bridgehub.json";
 // import I_MAILBOX_IMPL_JSON from "@/utils/abis/IMailboxImpl.json";
 import L2_INTEROP_CENTER_JSON from "@/utils/abis/L2InteropCenter.json";
+import ERC4626_DEPOSIT_JSON from "@/utils/abis/IERC4626StataToken.json";
 import { ShadowAccountOp } from "./types";
 import { estimateGas } from "@wagmi/core";
 
@@ -41,11 +42,36 @@ export async function getDepositBundle(
     args: [CONTRACT_ADDRESSES.aavePool, shadowAccount, 0],
   });
 
+const approveAWethToStataData = encodeFunctionData({
+    abi: I_ERC20_JSON.abi as Abi,
+    functionName: "approve",
+    args: [CONTRACT_ADDRESSES.stataWeth, amount],
+  });
+
+  const depositIntoStataData = encodeFunctionData({
+    abi: ERC4626_DEPOSIT_JSON as Abi,
+    functionName: "deposit",
+    args: [amount, shadowAccount, 0, false],
+  });
+
   const ops: ShadowAccountOp[] = [
+    // deposit ETH to get aWETH
     {
       target: CONTRACT_ADDRESSES.aaveWeth,
       value: amount,
       data: depositETHData,
+    },
+    {
+      // approve aWETH -> stataWETH
+      target: CONTRACT_ADDRESSES.aToken,
+      value: BigInt(0),
+      data: approveAWethToStataData,
+    },
+    {
+      // deposit aWETH into vault -> get stataWETH
+      target: CONTRACT_ADDRESSES.stataWeth,
+      value: BigInt(0),
+      data: depositIntoStataData,
     },
   ];
 
