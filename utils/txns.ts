@@ -33,8 +33,11 @@ export async function getShadowAccount(
 
 export async function getDepositBundle(
   shadowAccount: `0x${string}`,
-  amount: bigint
+  amount: bigint,
+  account: UseAccountReturnType<Config>,
+  client: ViemClient
 ) {
+  if (!account.address) throw new Error("missing account address");
   // abi.encodeCall(IWrappedTokenGatewayV3.depositETH, (aavePool, shadowAccount, 0))
   const depositETHData = encodeFunctionData({
     abi: I_WRAPPED_TOKEN_JSON.abi as Abi,
@@ -53,6 +56,18 @@ const approveAWethToStataData = encodeFunctionData({
     functionName: "deposit",
     args: [amount, shadowAccount, 0, false],
   });
+  
+  // const bridgeAmount = amount / BigInt(2);
+    const bridgeAmount = await quoteMaxStataWethToBridge(client, amount);
+
+  // approve stata token for withdrawal
+  const approveStataTokensData = encodeFunctionData({
+    abi: I_ERC20_JSON.abi as Abi,
+    functionName: "approve",
+    args: [CONTRACT_ADDRESSES.l1NativeTokenVaultAddress, bridgeAmount],
+  });
+
+   const { bridgeData, mintValue } = getBridgeDataAndMintValue(CONTRACT_ADDRESSES.stataWeth, bridgeAmount, account.address);
 
   const ops: ShadowAccountOp[] = [
     // deposit ETH to get aWETH
@@ -72,6 +87,18 @@ const approveAWethToStataData = encodeFunctionData({
       target: CONTRACT_ADDRESSES.stataWeth,
       value: BigInt(0),
       data: depositIntoStataData,
+    },
+    // approve stataWETH for bridging
+    {
+      target: CONTRACT_ADDRESSES.stataWeth,
+      value: BigInt(0),
+      data: approveStataTokensData,
+    },
+    // bridge stataWETH back to L2
+    {
+      target: CONTRACT_ADDRESSES.bridgehubAddress,
+      value: mintValue,
+      data: bridgeData,
     },
   ];
 
@@ -105,54 +132,7 @@ export async function getBorrowBundle(
     args: [CONTRACT_ADDRESSES.l1NativeTokenVaultAddress, ghoAmount],
   });
 
-  const gasPrice = await client.l1.getGasPrice();
-  const l2GasLimit = BigInt(5_000_000);
-  const l2GasPerPubdataByteLimit = BigInt(800);
-
-  // TODO: figure out correct calculation - this one returns a value that's too high
-  // const baseCost = await client.l1.readContract({
-  //   address: CONTRACT_ADDRESSES.chainMailBoxAddress,
-  //   abi: I_MAILBOX_IMPL_JSON.abi as Abi,
-  //   functionName: "l2TransactionBaseCost",
-  //   args: [gasPrice, l2GasLimit, l2GasPerPubdataByteLimit],
-  // });
-
-  // console.log('basecost:', baseCost)
-
-  // const mintValue =
-  //   typeof baseCost === "bigint" ? baseCost + BigInt(1_000) : BigInt(5_000_000_000_000_000);
-  console.log("L1 Gas Price", gasPrice);
-  const mintValue = parseEther("0.0015");
-
-  const ghoTokenAssetId = DataEncoding.encodeNTVAssetId(
-    BigInt(sepolia.id),
-    CONTRACT_ADDRESSES.ghoTokenAddress
-  );
-  const inner = DataEncoding.encodeBridgeBurnData(
-    ghoAmount,
-    account.address,
-    CONTRACT_ADDRESSES.ghoTokenAddress
-  );
-  const secondBridgeCalldata =
-    DataEncoding.encodeAssetRouterBridgehubDepositData(ghoTokenAssetId, inner);
-
-  const bridgeData = encodeFunctionData({
-    abi: I_L1_BRIDGEHUB_JSON.abi as Abi,
-    functionName: "requestL2TransactionTwoBridges",
-    args: [
-      {
-        chainId: zksyncOSTestnet.id,
-        mintValue,
-        l2Value: BigInt(0),
-        l2GasLimit,
-        l2GasPerPubdataByteLimit,
-        refundRecipient: account.address,
-        secondBridgeAddress: CONTRACT_ADDRESSES.l1AssetRouterAddress,
-        secondBridgeValue: BigInt(0),
-        secondBridgeCalldata,
-      },
-    ],
-  });
+  const { bridgeData, mintValue } = getBridgeDataAndMintValue(CONTRACT_ADDRESSES.ghoTokenAddress, ghoAmount, account.address);
 
   const ops: ShadowAccountOp[] = [
     {
@@ -181,6 +161,45 @@ export async function getBorrowBundle(
     },
     l1GasNeeded: mintValue,
   };
+}
+
+function getBridgeDataAndMintValue(tokenAddress: `0x${string}`, amount: bigint, l2Receiver: `0x${string}`){
+  const mintValue = parseEther("0.003");
+
+  const assetId = DataEncoding.encodeNTVAssetId(
+    BigInt(sepolia.id),
+    tokenAddress
+  );
+  const inner = DataEncoding.encodeBridgeBurnData(
+    amount,
+    l2Receiver,
+    tokenAddress
+  );
+  const secondBridgeCalldata =
+    DataEncoding.encodeAssetRouterBridgehubDepositData(assetId, inner);
+
+    const l2GasLimit = BigInt(5_000_000);
+  const l2GasPerPubdataByteLimit = BigInt(800);
+
+  const bridgeData = encodeFunctionData({
+    abi: I_L1_BRIDGEHUB_JSON.abi as Abi,
+    functionName: "requestL2TransactionTwoBridges",
+    args: [
+      {
+        chainId: zksyncOSTestnet.id,
+        mintValue,
+        l2Value: BigInt(0),
+        l2GasLimit,
+        l2GasPerPubdataByteLimit,
+        refundRecipient: l2Receiver,
+        secondBridgeAddress: CONTRACT_ADDRESSES.l1AssetRouterAddress,
+        secondBridgeValue: BigInt(0),
+        secondBridgeCalldata,
+      },
+    ],
+  });
+
+  return { bridgeData, mintValue }
 }
 
 export function getWithdrawParams(
@@ -235,4 +254,34 @@ export async function initWithdraw(
     console.log("ERROR:", e);
     return;
   }
+}
+
+
+export async function quoteMaxStataWethToBridge(
+  client: ViemClient,
+  amount: bigint,
+) {
+  let shares: bigint;
+  const contractData = {
+    address: CONTRACT_ADDRESSES.stataWeth,
+      abi: ERC4626_DEPOSIT_JSON as Abi,
+  };
+  try {
+    shares = await client.l1.readContract({
+      ...contractData,
+      functionName: "convertToShares",
+      args: [amount],
+    }) as bigint;
+  } catch {
+    shares = await client.l1.readContract({
+      ...contractData,
+      functionName: "previewDeposit",
+      args: [amount],
+    }) as bigint;
+  }
+
+  // subtract 100 wei of shares to avoid any rounding/index drift.
+  const maxBridgeShares = shares > BigInt(0) ? shares - BigInt(100) : BigInt(0);
+
+  return maxBridgeShares;
 }

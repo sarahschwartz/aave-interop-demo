@@ -67,8 +67,11 @@ export default function EthSupplyForm({
 
     try {
       const wei = parseEther(amount);
-      const bundle = await getDepositBundle(shadowAccount, wei);
-      const wHash = await initWithdraw(account, wei, sdk, shadowAccount);
+      // add mintValue for gas to bridge back to L2
+      const withdrawWei = wei + parseEther("0.003");
+      const bundle = await getDepositBundle(shadowAccount, wei, account, client);
+      const wHash = await initWithdraw(account, withdrawWei, sdk, shadowAccount);
+      // const wHash = '0x9cc5d9de69eb04ac28054a54f567bc762d661826faeeb65b4faaae6011463752'
       const bHash = await writeContract(config, bundle);
 
       if (!wHash || !bHash) {
@@ -98,10 +101,13 @@ export default function EthSupplyForm({
       if(!sdk || !client) return;
       const wei = parseEther(value);
       const withdrawGas = await getWithdrawEstimate(wei, sdk, shadowAccount);
-      const bundle = await getDepositBundle(shadowAccount, wei);
+      const bundle = await getDepositBundle(shadowAccount, wei, account, client);
       const bundleGas = await estimateGas(config, {...bundle, chainId: zksyncOSTestnet.id});
       const totalGas = withdrawGas + bundleGas;
+      console.log('withdrawGas', withdrawGas)
+      console.log('bundleGas', bundleGas)
       const gasPrice = await client.l1.getGasPrice();
+      console.log('gasPrice', gasPrice)
       const totalWei = totalGas * gasPrice;
       const ethCost = Number(formatEther(totalWei));
       const response = await fetch("/api/get-price", {
